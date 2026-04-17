@@ -17,7 +17,7 @@ load_specialty_lookup <- function() {
 }
 
 load_waiting_times_data <- function() {
-  url <- "https://www.opendata.nhs.scot/dataset/e9dbef36-a343-4b9a-ab7e-b6e6cbcbb38e/resource/4c091d26-1492-41e5-9577-832cbc1cd4cf/download/sot_performance_completed_waits_sep24.csv"
+  url <- "https://www.opendata.nhs.scot/dataset/e9dbef36-a343-4b9a-ab7e-b6e6cbcbb38e/resource/4c091d26-1492-41e5-9577-832cbc1cd4cf/download/sot_performance_completed_waits_dec25.csv"
   
   df <- read_csv(url) %>%
     clean_names() %>%
@@ -38,7 +38,7 @@ load_waiting_times_data <- function() {
 
 # In load_balance_data(), add after the initial data processing:
 load_balance_data <- function() {
-  url <- "https://www.opendata.nhs.scot/dataset/e9dbef36-a343-4b9a-ab7e-b6e6cbcbb38e/resource/10dd6ca4-1868-464c-8d20-7f9261070484/download/sot_removal_reasons_sep24.csv"
+  url <- "https://www.opendata.nhs.scot/dataset/e9dbef36-a343-4b9a-ab7e-b6e6cbcbb38e/resource/10dd6ca4-1868-464c-8d20-7f9261070484/download/sot_removal_reasons_dec25.csv"
   
   df <- read_csv(url) %>%
     clean_names() %>%
@@ -72,7 +72,7 @@ load_balance_data <- function() {
 
 # In load_waiting_distribution(), add after the initial data processing:
 load_waiting_distribution <- function() {
-  url <- "https://www.opendata.nhs.scot/dataset/e9dbef36-a343-4b9a-ab7e-b6e6cbcbb38e/resource/093f04a5-bb8f-4ce6-9016-d4fa0a912630/download/sot_distribution_of_ongoing_waits_sep24.csv"
+  url <- "https://www.opendata.nhs.scot/dataset/e9dbef36-a343-4b9a-ab7e-b6e6cbcbb38e/resource/093f04a5-bb8f-4ce6-9016-d4fa0a912630/download/sot_distribution_of_ongoing_waits_dec25.csv"
   
   df <- read_csv(url) %>%
     clean_names() %>%
@@ -94,7 +94,7 @@ load_waiting_distribution <- function() {
 }
 
 load_diagnostic_waiting_times <- function() {
-  url <- "https://www.opendata.nhs.scot/dataset/3d1f49b2-f770-492f-82c9-ebefdc56ece4/resource/10dfe6f3-32de-4039-84c2-7e7794a06b31/download/diagnostics_by_board_september_2024.csv"
+  url <- "https://www.opendata.nhs.scot/dataset/3d1f49b2-f770-492f-82c9-ebefdc56ece4/resource/10dfe6f3-32de-4039-84c2-7e7794a06b31/download/diagnostics_by_board_december_2025.csv"
   
   # First get board level data
   board_level <- read_csv(url) %>%
