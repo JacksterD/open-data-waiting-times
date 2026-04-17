@@ -170,7 +170,7 @@ server <- function(input, output, session) {
     layout_columns(
       value_box("Total on Waiting List", scales::comma(total),   p(date_label), theme = "primary"),
       value_box("Waiting Over 52 Weeks", scales::comma(over_52), p(date_label), theme = "danger"),
-      col_widths = c(4, 4)
+      col_widths = c(-2, 4, 4, -2)
     )
   })
 
@@ -197,7 +197,7 @@ server <- function(input, output, session) {
     layout_columns(
       value_box("Seen Within 12 Weeks", sprintf("%.1f%%", pct),              p(date_label), theme = pct_theme),
       value_box("Waiting Over 12 Weeks", scales::comma(latest$waited_over_12_weeks), p(date_label), theme = "danger"),
-      col_widths = c(4, 4)
+      col_widths = c(-2, 4, 4, -2)
     )
   })
 
@@ -208,7 +208,7 @@ server <- function(input, output, session) {
     total <- data %>% filter(month_date == latest_date) %>% summarise(n = sum(total_waiting)) %>% pull(n)
     layout_columns(
       value_box("Total Waiting", scales::comma(total), p(format(latest_date, "%B %Y")), theme = "primary"),
-      col_widths = c(4)
+      col_widths = c(-4, 4, -4)
     )
   })
 
@@ -223,7 +223,7 @@ server <- function(input, output, session) {
     layout_columns(
       value_box("31-Day Standard", sprintf("%.1f%%", l31$percent_within), p(format(l31$quarter_date, "%b %Y")), theme = theme_31),
       value_box("62-Day Standard", sprintf("%.1f%%", l62$percent_within), p(format(l62$quarter_date, "%b %Y")), theme = theme_62),
-      col_widths = c(4, 4)
+      col_widths = c(-2, 4, 4, -2)
     )
   })
 
@@ -237,7 +237,7 @@ server <- function(input, output, session) {
     layout_columns(
       value_box("Within 4 Hours",      sprintf("%.1f%%", pct),                      p(date_label), theme = pct_theme),
       value_box("Total Attendances",   scales::comma(latest$total_attendances),      p(date_label), theme = "primary"),
-      col_widths = c(4, 4)
+      col_widths = c(-2, 4, 4, -2)
     )
   })
 
