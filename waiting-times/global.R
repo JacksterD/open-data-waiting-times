@@ -15,7 +15,7 @@ get_ckan_url <- function(resource_id) {
 
 # Function to load specialty lookup
 load_specialty_lookup <- function() {
-  url <- "https://www.opendata.nhs.scot/dataset/688c7ea0-4845-4b03-9df0-4149c72cb7f0/resource/6f2e3da0-b1b5-46cc-ac04-78495daedfa3/download/specialty_codes.csv"
+  url <- get_ckan_url("6f2e3da0-b1b5-46cc-ac04-78495daedfa3")
   
   df <- read_csv(url) %>%
     clean_names()
@@ -101,7 +101,7 @@ load_waiting_distribution <- function() {
 }
 
 load_diagnostic_waiting_times <- function() {
-  url <- "https://www.opendata.nhs.scot/dataset/3d1f49b2-f770-492f-82c9-ebefdc56ece4/resource/10dfe6f3-32de-4039-84c2-7e7794a06b31/download/diagnostics_by_board_december_2025.csv"
+  url <- get_ckan_url("10dfe6f3-32de-4039-84c2-7e7794a06b31")
   
   # First get board level data
   board_level <- read_csv(url) %>%
@@ -145,7 +145,7 @@ load_diagnostic_waiting_times <- function() {
 }
 
 load_cancer_31day_data <- function() {
-  url <- "https://www.opendata.nhs.scot/dataset/11c61a02-205b-43f6-9297-243679103617/resource/58527343-a930-4058-bf9e-3c6e5cb04010/download/cwt_31_day_standard.csv"
+  url <- get_ckan_url("58527343-a930-4058-bf9e-3c6e5cb04010")
   
   # First get the HBT level data
   hbt_level <- read_csv(url) %>%
@@ -195,7 +195,7 @@ load_cancer_31day_data <- function() {
 }
 
 load_cancer_62day_data <- function() {
-  url <- "https://www.opendata.nhs.scot/dataset/11c61a02-205b-43f6-9297-243679103617/resource/23b3bbf7-7a37-4f86-974b-6360d6748e08/download/cwt_62_day_standard.csv"
+  url <- get_ckan_url("23b3bbf7-7a37-4f86-974b-6360d6748e08")
   
   # First get the HB level data
   hb_level <- read_csv(url) %>%
@@ -246,7 +246,7 @@ load_cancer_62day_data <- function() {
 
 
 load_ae_waiting_times <- function() {
-  url <- "https://www.opendata.nhs.scot/dataset/0d57311a-db66-4eaa-bd6d-cc622b6cbdfa/resource/a5f7ca94-c810-41b5-a7c9-25c18d43e5a4/download/weekly_ae_activity_20250209.csv"
+  url <- get_ckan_url("a5f7ca94-c810-41b5-a7c9-25c18d43e5a4")
   
   # First get board level data
   board_level <- read_csv(url) %>%
