@@ -42,7 +42,7 @@ ui <- fluidPage(
         selectInput(
           inputId = "treatment_location_select",
           label = "Treatment Location",
-          choices = sort(unique(ae_data$treatment_location))
+          choices = sort(unique(ae_data$hospital_name))
         )
       ),
       width = 3

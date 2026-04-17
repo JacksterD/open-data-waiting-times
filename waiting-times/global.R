@@ -290,8 +290,16 @@ load_ae_waiting_times <- function() {
 }
 
 
+load_hospital_lookup <- function() {
+  url <- get_ckan_url("c698f450-eeed-41a0-88f7-c1e40a568acc")
+  read_csv(url) %>%
+    clean_names() %>%
+    select(hospital_code, hospital_name)
+}
+
 # Load the lookups and data globally
 specialty_lookup <- load_specialty_lookup()
+hospital_lookup <- load_hospital_lookup()
 wt_data <- load_waiting_times_data() %>%
   filter(!is.na(specialty_name)) %>%
   filter(specialty_name != "General Surgery (excl Vascular)")
@@ -310,5 +318,7 @@ cancer_31_day_data <- load_cancer_31day_data()
 
 cancer_62_day_data <- load_cancer_62day_data()
 
-ae_data <- load_ae_waiting_times()
+ae_data <- load_ae_waiting_times() %>%
+  left_join(hospital_lookup, by = c("treatment_location" = "hospital_code")) %>%
+  mutate(hospital_name = coalesce(hospital_name, treatment_location))
 
