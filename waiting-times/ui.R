@@ -10,7 +10,7 @@ ui <- fluidPage(
       ),
       
       conditionalPanel(
-        condition = "input.tabs !== '🩺 Diagnostic Waits' && input.tabs !== '🧬 Cancer Waiting Times'",
+        condition = "input.tabs !== '🩺 Diagnostic Waits' && input.tabs !== '🧬 Cancer Waiting Times' && input.tabs !== '🚑 A&E Waits'",
         selectInput(
           inputId = "patient_type_select",
           label = "Patient Type",
@@ -34,6 +34,15 @@ ui <- fluidPage(
           inputId = "diagnostic_test_description_select",
           label = "Diagnostic Test Description",
           choices = unique(diagnostic_waiting_times$diagnostic_test_description)
+        )
+      ),
+
+      conditionalPanel(
+        condition = "input.tabs === '🚑 A&E Waits'",
+        selectInput(
+          inputId = "treatment_location_select",
+          label = "Treatment Location",
+          choices = sort(unique(ae_data$treatment_location))
         )
       ),
       width = 3
@@ -70,7 +79,9 @@ ui <- fluidPage(
                  p("Time from urgent referral with suspicion of cancer to first cancer treatment"),
                  plotlyOutput("cancer_62_day_plot", height = "480px")
         ),
-        tabPanel("🚑 A&E Waits"
+        tabPanel("🚑 A&E Waits",
+                 plotlyOutput("ae_attendances_plot", height = "420px"),
+                 plotlyOutput("ae_waits_plot", height = "420px")
         )
       ),
       width = 9

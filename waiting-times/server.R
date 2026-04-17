@@ -112,6 +112,24 @@ server <- function(input, output, session) {
     )
   })
   
+  ##### A&E Waits #####
+  ae_filtered <- reactive({
+    ae_data %>%
+      filter(hb_name == input$hb_select) %>%
+      filter(treatment_location == input$treatment_location_select) %>%
+      filter(attendance_category == "All")
+  })
+
+  observe({
+    locations <- ae_data %>%
+      filter(hb_name == input$hb_select) %>%
+      pull(treatment_location) %>%
+      unique() %>%
+      sort()
+
+    updateSelectInput(session, "treatment_location_select", choices = locations)
+  })
+
   ##### Cancer - 31 Day Standard #####
   cancer_31_day_filtered <- reactive({
     cancer_31_day_data %>%
@@ -589,6 +607,67 @@ server <- function(input, output, session) {
       )
   })
   
+  ##### A&E Waits #####
+  output$ae_attendances_plot <- renderPlotly({
+    plot_ly(ae_filtered()) %>%
+      add_lines(
+        x = ~week_ending,
+        y = ~total_attendances,
+        line = list(color = '#0078D4', width = 2),
+        name = "Total Attendances"
+      ) %>%
+      layout(
+        title = list(text = "Total A&E Attendances", font = list(size = 16), pad = list(t = 20)),
+        margin = list(t = 50),
+        xaxis = list(title = "", gridcolor = 'rgba(220, 220, 220, 0.4)', showgrid = TRUE),
+        yaxis = list(title = "Number of Attendances", gridcolor = 'rgba(220, 220, 220, 0.4)', showgrid = TRUE, rangemode = "tozero"),
+        showlegend = FALSE,
+        hoverlabel = list(bgcolor = "white"),
+        hovermode = "x"
+      )
+  })
+
+  output$ae_waits_plot <- renderPlotly({
+    plot_ly(ae_filtered()) %>%
+      add_trace(
+        x = ~week_ending, y = ~pct_within_4_hours,
+        name = "Within 4 hours",
+        type = 'scatter', mode = 'none', stackgroup = 'one',
+        fillcolor = '#059669'
+      ) %>%
+      add_trace(
+        x = ~week_ending, y = ~pct_4_to_8_hours,
+        name = "4-8 hours",
+        type = 'scatter', mode = 'none', stackgroup = 'one',
+        fillcolor = '#F59E0B'
+      ) %>%
+      add_trace(
+        x = ~week_ending, y = ~pct_8_to_12_hours,
+        name = "8-12 hours",
+        type = 'scatter', mode = 'none', stackgroup = 'one',
+        fillcolor = '#F97316'
+      ) %>%
+      add_trace(
+        x = ~week_ending, y = ~pct_over_12_hours,
+        name = "Over 12 hours",
+        type = 'scatter', mode = 'none', stackgroup = 'one',
+        fillcolor = '#DC2626'
+      ) %>%
+      layout(
+        title = list(text = "A&E Waiting Time Breakdown", font = list(size = 16), pad = list(t = 20)),
+        margin = list(t = 50),
+        xaxis = list(title = "", gridcolor = 'rgba(220, 220, 220, 0.4)', showgrid = TRUE),
+        yaxis = list(
+          title = "Percentage of Attendances",
+          gridcolor = 'rgba(220, 220, 220, 0.4)', showgrid = TRUE,
+          range = c(0, 100), ticksuffix = "%"
+        ),
+        legend = list(orientation = "h", xanchor = "center", x = 0.5, y = -0.1),
+        hoverlabel = list(bgcolor = "white"),
+        hovermode = "x unified"
+      )
+  })
+
   ##### Cancer - 31 Day Standard #####
   # Add to your outputs section
   output$cancer_31_day_plot <- renderPlotly({
