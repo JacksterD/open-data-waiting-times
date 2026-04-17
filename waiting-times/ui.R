@@ -1,5 +1,6 @@
 ui <- fluidPage(
   theme = nhs_theme,
+  tags$head(tags$style(HTML(".tab-content { padding-top: 1rem; }"))),
   titlePanel("NHS Scotland Waiting Times"),
   
   sidebarLayout(
