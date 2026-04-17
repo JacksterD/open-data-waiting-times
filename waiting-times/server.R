@@ -158,6 +158,89 @@ server <- function(input, output, session) {
       )
   })
   
+  #### Value Boxes ####
+
+  output$vb_waiting_profile <- renderUI({
+    data <- waiting_distribution_filtered()
+    if (nrow(data) == 0) return(NULL)
+    latest <- data %>% filter(month_date == max(month_date))
+    total  <- latest$wait_0_to_26 + latest$wait_26_to_52 + latest$wait_52_to_78 + latest$wait_over_78
+    over_52 <- latest$wait_52_to_78 + latest$wait_over_78
+    date_label <- format(latest$month_date, "%B %Y")
+    layout_columns(
+      value_box("Total on Waiting List", scales::comma(total),   p(date_label), theme = "primary"),
+      value_box("Waiting Over 52 Weeks", scales::comma(over_52), p(date_label), theme = "danger"),
+      col_widths = c(4, 4)
+    )
+  })
+
+  output$vb_balance <- renderUI({
+    data <- balance_filtered()
+    if (nrow(data) == 0) return(NULL)
+    latest <- data %>% filter(quarter_date == max(quarter_date))
+    date_label <- format(latest$quarter_date, "%b %Y")
+    net_theme <- if (latest$balance > 0) "danger" else "success"
+    layout_columns(
+      value_box("Additions",   scales::comma(latest$additions), p(date_label), theme = "primary"),
+      value_box("Removals",    scales::comma(latest$removals),  p(date_label), theme = "primary"),
+      value_box("Net Change",  scales::comma(latest$balance),   p(date_label), theme = net_theme)
+    )
+  })
+
+  output$vb_12week <- renderUI({
+    data <- patients_seen_filtered()
+    if (nrow(data) == 0) return(NULL)
+    latest <- data %>% filter(quarter_date == max(quarter_date))
+    pct <- latest$waited_under_12_weeks / latest$total_seen * 100
+    pct_theme <- if (pct >= 95) "success" else if (pct >= 80) "warning" else "danger"
+    date_label <- format(latest$quarter_date, "%b %Y")
+    layout_columns(
+      value_box("Seen Within 12 Weeks", sprintf("%.1f%%", pct),              p(date_label), theme = pct_theme),
+      value_box("Waiting Over 12 Weeks", scales::comma(latest$waited_over_12_weeks), p(date_label), theme = "danger"),
+      col_widths = c(4, 4)
+    )
+  })
+
+  output$vb_diagnostics <- renderUI({
+    data <- diagnostic_waits_filtered()
+    if (nrow(data) == 0) return(NULL)
+    latest_date <- max(data$month_date)
+    total <- data %>% filter(month_date == latest_date) %>% summarise(n = sum(total_waiting)) %>% pull(n)
+    layout_columns(
+      value_box("Total Waiting", scales::comma(total), p(format(latest_date, "%B %Y")), theme = "primary"),
+      col_widths = c(4)
+    )
+  })
+
+  output$vb_cancer <- renderUI({
+    d31 <- cancer_31_day_filtered()
+    d62 <- cancer_62_day_filtered()
+    if (nrow(d31) == 0 || nrow(d62) == 0) return(NULL)
+    l31 <- d31 %>% filter(quarter_date == max(quarter_date))
+    l62 <- d62 %>% filter(quarter_date == max(quarter_date))
+    theme_31 <- if (l31$percent_within >= 95) "success" else if (l31$percent_within >= 80) "warning" else "danger"
+    theme_62 <- if (l62$percent_within >= 95) "success" else if (l62$percent_within >= 80) "warning" else "danger"
+    layout_columns(
+      value_box("31-Day Standard", sprintf("%.1f%%", l31$percent_within), p(format(l31$quarter_date, "%b %Y")), theme = theme_31),
+      value_box("62-Day Standard", sprintf("%.1f%%", l62$percent_within), p(format(l62$quarter_date, "%b %Y")), theme = theme_62),
+      col_widths = c(4, 4)
+    )
+  })
+
+  output$vb_ae <- renderUI({
+    data <- ae_filtered()
+    if (nrow(data) == 0) return(NULL)
+    latest <- data %>% filter(week_ending == max(week_ending))
+    pct <- latest$pct_within_4_hours
+    pct_theme <- if (pct >= 95) "success" else if (pct >= 80) "warning" else "danger"
+    date_label <- format(latest$week_ending, "%d %b %Y")
+    layout_columns(
+      value_box("Within 4 Hours",      sprintf("%.1f%%", pct),                      p(date_label), theme = pct_theme),
+      value_box("Total Attendances",   scales::comma(latest$total_attendances),      p(date_label), theme = "primary"),
+      col_widths = c(4, 4)
+    )
+  })
+
   #### Charts ####
   
   ##### Waiting Profile #####

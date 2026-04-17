@@ -6,6 +6,17 @@ library(janitor)
 library(plotly)
 library(phsmethods)
 library(jsonlite)
+library(bslib)
+
+nhs_theme <- bs_theme(
+  version = 5,
+  primary = "#003087",
+  success = "#009639",
+  danger = "#DA291C",
+  warning = "#FFB81C",
+  "body-bg" = "#f5f7fa",
+  "card-border-radius" = "0.5rem"
+)
 
 get_ckan_url <- function(resource_id) {
   api_url <- paste0("https://www.opendata.nhs.scot/api/3/action/resource_show?id=", resource_id)
