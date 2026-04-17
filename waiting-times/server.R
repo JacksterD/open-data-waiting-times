@@ -52,12 +52,19 @@ server <- function(input, output, session) {
         additions = sum(number_added, na.rm = TRUE),
         removals = sum(number_removed, na.rm = TRUE),
         balance = additions - removals,
-        attended_pct = mean(attended_pct, na.rm = TRUE),
-        referred_pct = mean(referred_pct, na.rm = TRUE),
-        transferred_pct = mean(transferred_pct, na.rm = TRUE),
-        no_treatment_pct = mean(no_treatment_pct, na.rm = TRUE),
-        other_pct = mean(other_pct, na.rm = TRUE),
+        attended_total = sum(attended, na.rm = TRUE),
+        referred_total = sum(referred_gp, na.rm = TRUE),
+        transferred_total = sum(transferred, na.rm = TRUE),
+        no_treatment_total = sum(no_treatment_required, na.rm = TRUE),
+        other_total = sum(other_reasons, na.rm = TRUE),
         .groups = "drop"
+      ) %>%
+      mutate(
+        attended_pct = attended_total / removals * 100,
+        referred_pct = referred_total / removals * 100,
+        transferred_pct = transferred_total / removals * 100,
+        no_treatment_pct = no_treatment_total / removals * 100,
+        other_pct = other_total / removals * 100
       )
   })
   
@@ -363,14 +370,14 @@ server <- function(input, output, session) {
   output$waiting_plot <- renderPlotly({
     plot_ly(wt_filtered()) %>%
       add_lines(
-        x = ~quarter_label, 
-        y = ~seen_within_12, 
+        x = ~quarter_date,
+        y = ~seen_within_12,
         name = "Within 12 weeks",
         line = list(color = '#059669', width = 2)  # Green for target/good
       ) %>%
       add_lines(
-        x = ~quarter_label, 
-        y = ~waiting_over_12, 
+        x = ~quarter_date,
+        y = ~waiting_over_12,
         name = "Over 12 weeks",
         line = list(color = '#DC2626', width = 2)  # Red for over target
       ) %>%
@@ -406,20 +413,20 @@ server <- function(input, output, session) {
   output$patients_seen_plot <- renderPlotly({
     plot_ly(patients_seen_filtered()) %>%
       add_trace(
-        x = ~quarter_label, 
-        y = ~waited_under_12_weeks, 
-        name = "Within 12 weeks", 
-        type = 'scatter', 
-        mode = 'none', 
+        x = ~quarter_date,
+        y = ~waited_under_12_weeks,
+        name = "Within 12 weeks",
+        type = 'scatter',
+        mode = 'none',
         stackgroup = 'one',
         fillcolor = '#059669'  # Green for target/good
       ) %>%
       add_trace(
-        x = ~quarter_label, 
-        y = ~waited_over_12_weeks, 
-        name = "Over 12 weeks", 
-        type = 'scatter', 
-        mode = 'none', 
+        x = ~quarter_date,
+        y = ~waited_over_12_weeks,
+        name = "Over 12 weeks",
+        type = 'scatter',
+        mode = 'none',
         stackgroup = 'one',
         fillcolor = '#DC2626'  # Red for over target
       ) %>%
