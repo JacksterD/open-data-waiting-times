@@ -14,7 +14,7 @@ nhs_theme <- bs_theme(
   success = "#009639",
   danger = "#DA291C",
   warning = "#FFB81C",
-  "body-bg" = "#f5f7fa",
+  "body-bg" = "#ffffff",
   "card-border-radius" = "0.5rem"
 )
 
