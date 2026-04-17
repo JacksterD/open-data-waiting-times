@@ -3,10 +3,13 @@ ui <- fluidPage(
   
   sidebarLayout(
     sidebarPanel(
-      selectInput(
-        inputId = "hb_select", 
-        label = "Health Board",
-        choices = unique(balance_data$hb_name)
+      conditionalPanel(
+        condition = "input.tabs !== '🚑 A&E Waits'",
+        selectInput(
+          inputId = "hb_select",
+          label = "Health Board",
+          choices = unique(balance_data$hb_name)
+        )
       ),
       
       conditionalPanel(
