@@ -40,6 +40,11 @@ ui <- fluidPage(
       conditionalPanel(
         condition = "input.tabs === '🚑 A&E Waits'",
         selectInput(
+          inputId = "ae_hb_select",
+          label = "Health Board",
+          choices = sort(unique(ae_data$hb_name[!is.na(ae_data$hb_name) & ae_data$hb_name != "Scotland"]))
+        ),
+        selectInput(
           inputId = "treatment_location_select",
           label = "Treatment Location",
           choices = sort(unique(ae_data$hospital_name))

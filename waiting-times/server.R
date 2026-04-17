@@ -115,14 +115,14 @@ server <- function(input, output, session) {
   ##### A&E Waits #####
   ae_filtered <- reactive({
     ae_data %>%
-      filter(hb_name == input$hb_select) %>%
+      filter(hb_name == input$ae_hb_select) %>%
       filter(hospital_name == input$treatment_location_select) %>%
       filter(attendance_category == "All")
   })
 
   observe({
     locations <- ae_data %>%
-      filter(hb_name == input$hb_select) %>%
+      filter(hb_name == input$ae_hb_select) %>%
       pull(hospital_name) %>%
       unique() %>%
       sort()
