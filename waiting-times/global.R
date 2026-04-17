@@ -5,6 +5,13 @@ library(lubridate)
 library(janitor)
 library(plotly)
 library(phsmethods)
+library(jsonlite)
+
+get_ckan_url <- function(resource_id) {
+  api_url <- paste0("https://www.opendata.nhs.scot/api/3/action/resource_show?id=", resource_id)
+  response <- fromJSON(api_url)
+  response$result$url
+}
 
 # Function to load specialty lookup
 load_specialty_lookup <- function() {
@@ -17,7 +24,7 @@ load_specialty_lookup <- function() {
 }
 
 load_waiting_times_data <- function() {
-  url <- "https://www.opendata.nhs.scot/dataset/e9dbef36-a343-4b9a-ab7e-b6e6cbcbb38e/resource/4c091d26-1492-41e5-9577-832cbc1cd4cf/download/sot_performance_completed_waits_dec25.csv"
+  url <- get_ckan_url("4c091d26-1492-41e5-9577-832cbc1cd4cf")
   
   df <- read_csv(url) %>%
     clean_names() %>%
@@ -38,7 +45,7 @@ load_waiting_times_data <- function() {
 
 # In load_balance_data(), add after the initial data processing:
 load_balance_data <- function() {
-  url <- "https://www.opendata.nhs.scot/dataset/e9dbef36-a343-4b9a-ab7e-b6e6cbcbb38e/resource/10dd6ca4-1868-464c-8d20-7f9261070484/download/sot_removal_reasons_dec25.csv"
+  url <- get_ckan_url("10dd6ca4-1868-464c-8d20-7f9261070484")
   
   df <- read_csv(url) %>%
     clean_names() %>%
@@ -72,7 +79,7 @@ load_balance_data <- function() {
 
 # In load_waiting_distribution(), add after the initial data processing:
 load_waiting_distribution <- function() {
-  url <- "https://www.opendata.nhs.scot/dataset/e9dbef36-a343-4b9a-ab7e-b6e6cbcbb38e/resource/093f04a5-bb8f-4ce6-9016-d4fa0a912630/download/sot_distribution_of_ongoing_waits_dec25.csv"
+  url <- get_ckan_url("093f04a5-bb8f-4ce6-9016-d4fa0a912630")
   
   df <- read_csv(url) %>%
     clean_names() %>%
