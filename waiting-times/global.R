@@ -5,10 +5,28 @@ library(lubridate)
 library(janitor)
 library(plotly)
 library(phsmethods)
+library(jsonlite)
+library(bslib)
+
+nhs_theme <- bs_theme(
+  version = 5,
+  primary = "#003087",
+  success = "#009639",
+  danger = "#DA291C",
+  warning = "#FFB81C",
+  "body-bg" = "#ffffff",
+  "card-border-radius" = "0.5rem"
+)
+
+get_ckan_url <- function(resource_id) {
+  api_url <- paste0("https://www.opendata.nhs.scot/api/3/action/resource_show?id=", resource_id)
+  response <- fromJSON(api_url)
+  response$result$url
+}
 
 # Function to load specialty lookup
 load_specialty_lookup <- function() {
-  url <- "https://www.opendata.nhs.scot/dataset/688c7ea0-4845-4b03-9df0-4149c72cb7f0/resource/6f2e3da0-b1b5-46cc-ac04-78495daedfa3/download/specialty_codes.csv"
+  url <- get_ckan_url("6f2e3da0-b1b5-46cc-ac04-78495daedfa3")
   
   df <- read_csv(url) %>%
     clean_names()
@@ -17,7 +35,7 @@ load_specialty_lookup <- function() {
 }
 
 load_waiting_times_data <- function() {
-  url <- "https://www.opendata.nhs.scot/dataset/e9dbef36-a343-4b9a-ab7e-b6e6cbcbb38e/resource/4c091d26-1492-41e5-9577-832cbc1cd4cf/download/sot_performance_completed_waits_sep24.csv"
+  url <- get_ckan_url("4c091d26-1492-41e5-9577-832cbc1cd4cf")
   
   df <- read_csv(url) %>%
     clean_names() %>%
@@ -38,7 +56,7 @@ load_waiting_times_data <- function() {
 
 # In load_balance_data(), add after the initial data processing:
 load_balance_data <- function() {
-  url <- "https://www.opendata.nhs.scot/dataset/e9dbef36-a343-4b9a-ab7e-b6e6cbcbb38e/resource/10dd6ca4-1868-464c-8d20-7f9261070484/download/sot_removal_reasons_sep24.csv"
+  url <- get_ckan_url("10dd6ca4-1868-464c-8d20-7f9261070484")
   
   df <- read_csv(url) %>%
     clean_names() %>%
@@ -72,7 +90,7 @@ load_balance_data <- function() {
 
 # In load_waiting_distribution(), add after the initial data processing:
 load_waiting_distribution <- function() {
-  url <- "https://www.opendata.nhs.scot/dataset/e9dbef36-a343-4b9a-ab7e-b6e6cbcbb38e/resource/093f04a5-bb8f-4ce6-9016-d4fa0a912630/download/sot_distribution_of_ongoing_waits_sep24.csv"
+  url <- get_ckan_url("093f04a5-bb8f-4ce6-9016-d4fa0a912630")
   
   df <- read_csv(url) %>%
     clean_names() %>%
@@ -94,7 +112,7 @@ load_waiting_distribution <- function() {
 }
 
 load_diagnostic_waiting_times <- function() {
-  url <- "https://www.opendata.nhs.scot/dataset/3d1f49b2-f770-492f-82c9-ebefdc56ece4/resource/10dfe6f3-32de-4039-84c2-7e7794a06b31/download/diagnostics_by_board_september_2024.csv"
+  url <- get_ckan_url("10dfe6f3-32de-4039-84c2-7e7794a06b31")
   
   # First get board level data
   board_level <- read_csv(url) %>%
@@ -138,7 +156,7 @@ load_diagnostic_waiting_times <- function() {
 }
 
 load_cancer_31day_data <- function() {
-  url <- "https://www.opendata.nhs.scot/dataset/11c61a02-205b-43f6-9297-243679103617/resource/58527343-a930-4058-bf9e-3c6e5cb04010/download/cwt_31_day_standard.csv"
+  url <- get_ckan_url("58527343-a930-4058-bf9e-3c6e5cb04010")
   
   # First get the HBT level data
   hbt_level <- read_csv(url) %>%
@@ -188,7 +206,7 @@ load_cancer_31day_data <- function() {
 }
 
 load_cancer_62day_data <- function() {
-  url <- "https://www.opendata.nhs.scot/dataset/11c61a02-205b-43f6-9297-243679103617/resource/23b3bbf7-7a37-4f86-974b-6360d6748e08/download/cwt_62_day_standard.csv"
+  url <- get_ckan_url("23b3bbf7-7a37-4f86-974b-6360d6748e08")
   
   # First get the HB level data
   hb_level <- read_csv(url) %>%
@@ -239,7 +257,7 @@ load_cancer_62day_data <- function() {
 
 
 load_ae_waiting_times <- function() {
-  url <- "https://www.opendata.nhs.scot/dataset/0d57311a-db66-4eaa-bd6d-cc622b6cbdfa/resource/a5f7ca94-c810-41b5-a7c9-25c18d43e5a4/download/weekly_ae_activity_20250209.csv"
+  url <- get_ckan_url("a5f7ca94-c810-41b5-a7c9-25c18d43e5a4")
   
   # First get board level data
   board_level <- read_csv(url) %>%
@@ -283,8 +301,16 @@ load_ae_waiting_times <- function() {
 }
 
 
+load_hospital_lookup <- function() {
+  url <- get_ckan_url("c698f450-eeed-41a0-88f7-c1e40a568acc")
+  read_csv(url) %>%
+    clean_names() %>%
+    select(hospital_code, hospital_name)
+}
+
 # Load the lookups and data globally
 specialty_lookup <- load_specialty_lookup()
+hospital_lookup <- load_hospital_lookup()
 wt_data <- load_waiting_times_data() %>%
   filter(!is.na(specialty_name)) %>%
   filter(specialty_name != "General Surgery (excl Vascular)")
@@ -303,5 +329,7 @@ cancer_31_day_data <- load_cancer_31day_data()
 
 cancer_62_day_data <- load_cancer_62day_data()
 
-ae_data <- load_ae_waiting_times()
+ae_data <- load_ae_waiting_times() %>%
+  left_join(hospital_lookup, by = c("treatment_location" = "hospital_code")) %>%
+  mutate(hospital_name = coalesce(hospital_name, treatment_location))
 

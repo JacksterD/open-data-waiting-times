@@ -52,12 +52,19 @@ server <- function(input, output, session) {
         additions = sum(number_added, na.rm = TRUE),
         removals = sum(number_removed, na.rm = TRUE),
         balance = additions - removals,
-        attended_pct = mean(attended_pct, na.rm = TRUE),
-        referred_pct = mean(referred_pct, na.rm = TRUE),
-        transferred_pct = mean(transferred_pct, na.rm = TRUE),
-        no_treatment_pct = mean(no_treatment_pct, na.rm = TRUE),
-        other_pct = mean(other_pct, na.rm = TRUE),
+        attended_total = sum(attended, na.rm = TRUE),
+        referred_total = sum(referred_gp, na.rm = TRUE),
+        transferred_total = sum(transferred, na.rm = TRUE),
+        no_treatment_total = sum(no_treatment_required, na.rm = TRUE),
+        other_total = sum(other_reasons, na.rm = TRUE),
         .groups = "drop"
+      ) %>%
+      mutate(
+        attended_pct = attended_total / removals * 100,
+        referred_pct = referred_total / removals * 100,
+        transferred_pct = transferred_total / removals * 100,
+        no_treatment_pct = no_treatment_total / removals * 100,
+        other_pct = other_total / removals * 100
       )
   })
   
@@ -105,6 +112,24 @@ server <- function(input, output, session) {
     )
   })
   
+  ##### A&E Waits #####
+  ae_filtered <- reactive({
+    ae_data %>%
+      filter(hb_name == input$ae_hb_select) %>%
+      filter(hospital_name == input$treatment_location_select) %>%
+      filter(attendance_category == "All")
+  })
+
+  observe({
+    locations <- ae_data %>%
+      filter(hb_name == input$ae_hb_select) %>%
+      pull(hospital_name) %>%
+      unique() %>%
+      sort()
+
+    updateSelectInput(session, "treatment_location_select", choices = locations)
+  })
+
   ##### Cancer - 31 Day Standard #####
   cancer_31_day_filtered <- reactive({
     cancer_31_day_data %>%
@@ -133,6 +158,89 @@ server <- function(input, output, session) {
       )
   })
   
+  #### Value Boxes ####
+
+  output$vb_waiting_profile <- renderUI({
+    data <- waiting_distribution_filtered()
+    if (nrow(data) == 0) return(NULL)
+    latest <- data %>% filter(month_date == max(month_date))
+    total  <- latest$wait_0_to_26 + latest$wait_26_to_52 + latest$wait_52_to_78 + latest$wait_over_78
+    over_52 <- latest$wait_52_to_78 + latest$wait_over_78
+    date_label <- format(latest$month_date, "%B %Y")
+    layout_columns(
+      value_box("Total on Waiting List", scales::comma(total),   p(date_label), theme = "primary"),
+      value_box("Waiting Over 52 Weeks", scales::comma(over_52), p(date_label), theme = "danger"),
+      col_widths = c(-2, 4, 4, -2)
+    )
+  })
+
+  output$vb_balance <- renderUI({
+    data <- balance_filtered()
+    if (nrow(data) == 0) return(NULL)
+    latest <- data %>% filter(quarter_date == max(quarter_date))
+    date_label <- format(latest$quarter_date, "%b %Y")
+    net_theme <- if (latest$balance > 0) "danger" else "success"
+    layout_columns(
+      value_box("Additions",   scales::comma(latest$additions), p(date_label), theme = "primary"),
+      value_box("Removals",    scales::comma(latest$removals),  p(date_label), theme = "primary"),
+      value_box("Net Change",  scales::comma(latest$balance),   p(date_label), theme = net_theme)
+    )
+  })
+
+  output$vb_12week <- renderUI({
+    data <- patients_seen_filtered()
+    if (nrow(data) == 0) return(NULL)
+    latest <- data %>% filter(quarter_date == max(quarter_date))
+    pct <- latest$waited_under_12_weeks / latest$total_seen * 100
+    pct_theme <- if (pct >= 95) "success" else if (pct >= 80) "warning" else "danger"
+    date_label <- format(latest$quarter_date, "%b %Y")
+    layout_columns(
+      value_box("Seen Within 12 Weeks", sprintf("%.1f%%", pct),              p(date_label), theme = pct_theme),
+      value_box("Waiting Over 12 Weeks", scales::comma(latest$waited_over_12_weeks), p(date_label), theme = "danger"),
+      col_widths = c(-2, 4, 4, -2)
+    )
+  })
+
+  output$vb_diagnostics <- renderUI({
+    data <- diagnostic_waits_filtered()
+    if (nrow(data) == 0) return(NULL)
+    latest_date <- max(data$month_date)
+    total <- data %>% filter(month_date == latest_date) %>% summarise(n = sum(total_waiting)) %>% pull(n)
+    layout_columns(
+      value_box("Total Waiting", scales::comma(total), p(format(latest_date, "%B %Y")), theme = "primary"),
+      col_widths = c(-4, 4, -4)
+    )
+  })
+
+  output$vb_cancer <- renderUI({
+    d31 <- cancer_31_day_filtered()
+    d62 <- cancer_62_day_filtered()
+    if (nrow(d31) == 0 || nrow(d62) == 0) return(NULL)
+    l31 <- d31 %>% filter(quarter_date == max(quarter_date))
+    l62 <- d62 %>% filter(quarter_date == max(quarter_date))
+    theme_31 <- if (l31$percent_within >= 95) "success" else if (l31$percent_within >= 80) "warning" else "danger"
+    theme_62 <- if (l62$percent_within >= 95) "success" else if (l62$percent_within >= 80) "warning" else "danger"
+    layout_columns(
+      value_box("31-Day Standard", sprintf("%.1f%%", l31$percent_within), p(format(l31$quarter_date, "%b %Y")), theme = theme_31),
+      value_box("62-Day Standard", sprintf("%.1f%%", l62$percent_within), p(format(l62$quarter_date, "%b %Y")), theme = theme_62),
+      col_widths = c(-2, 4, 4, -2)
+    )
+  })
+
+  output$vb_ae <- renderUI({
+    data <- ae_filtered()
+    if (nrow(data) == 0) return(NULL)
+    latest <- data %>% filter(week_ending == max(week_ending))
+    pct <- latest$pct_within_4_hours
+    pct_theme <- if (pct >= 95) "success" else if (pct >= 80) "warning" else "danger"
+    date_label <- format(latest$week_ending, "%d %b %Y")
+    layout_columns(
+      value_box("Within 4 Hours",      sprintf("%.1f%%", pct),                      p(date_label), theme = pct_theme),
+      value_box("Total Attendances",   scales::comma(latest$total_attendances),      p(date_label), theme = "primary"),
+      col_widths = c(-2, 4, 4, -2)
+    )
+  })
+
   #### Charts ####
   
   ##### Waiting Profile #####
@@ -363,14 +471,14 @@ server <- function(input, output, session) {
   output$waiting_plot <- renderPlotly({
     plot_ly(wt_filtered()) %>%
       add_lines(
-        x = ~quarter_label, 
-        y = ~seen_within_12, 
+        x = ~quarter_date,
+        y = ~seen_within_12,
         name = "Within 12 weeks",
         line = list(color = '#059669', width = 2)  # Green for target/good
       ) %>%
       add_lines(
-        x = ~quarter_label, 
-        y = ~waiting_over_12, 
+        x = ~quarter_date,
+        y = ~waiting_over_12,
         name = "Over 12 weeks",
         line = list(color = '#DC2626', width = 2)  # Red for over target
       ) %>%
@@ -406,20 +514,20 @@ server <- function(input, output, session) {
   output$patients_seen_plot <- renderPlotly({
     plot_ly(patients_seen_filtered()) %>%
       add_trace(
-        x = ~quarter_label, 
-        y = ~waited_under_12_weeks, 
-        name = "Within 12 weeks", 
-        type = 'scatter', 
-        mode = 'none', 
+        x = ~quarter_date,
+        y = ~waited_under_12_weeks,
+        name = "Within 12 weeks",
+        type = 'scatter',
+        mode = 'none',
         stackgroup = 'one',
         fillcolor = '#059669'  # Green for target/good
       ) %>%
       add_trace(
-        x = ~quarter_label, 
-        y = ~waited_over_12_weeks, 
-        name = "Over 12 weeks", 
-        type = 'scatter', 
-        mode = 'none', 
+        x = ~quarter_date,
+        y = ~waited_over_12_weeks,
+        name = "Over 12 weeks",
+        type = 'scatter',
+        mode = 'none',
         stackgroup = 'one',
         fillcolor = '#DC2626'  # Red for over target
       ) %>%
@@ -582,6 +690,67 @@ server <- function(input, output, session) {
       )
   })
   
+  ##### A&E Waits #####
+  output$ae_attendances_plot <- renderPlotly({
+    plot_ly(ae_filtered()) %>%
+      add_lines(
+        x = ~week_ending,
+        y = ~total_attendances,
+        line = list(color = '#0078D4', width = 2),
+        name = "Total Attendances"
+      ) %>%
+      layout(
+        title = list(text = "Total A&E Attendances", font = list(size = 16), pad = list(t = 20)),
+        margin = list(t = 50),
+        xaxis = list(title = "", gridcolor = 'rgba(220, 220, 220, 0.4)', showgrid = TRUE),
+        yaxis = list(title = "Number of Attendances", gridcolor = 'rgba(220, 220, 220, 0.4)', showgrid = TRUE, rangemode = "tozero"),
+        showlegend = FALSE,
+        hoverlabel = list(bgcolor = "white"),
+        hovermode = "x"
+      )
+  })
+
+  output$ae_waits_plot <- renderPlotly({
+    plot_ly(ae_filtered()) %>%
+      add_trace(
+        x = ~week_ending, y = ~pct_within_4_hours,
+        name = "Within 4 hours",
+        type = 'scatter', mode = 'none', stackgroup = 'one',
+        fillcolor = '#059669'
+      ) %>%
+      add_trace(
+        x = ~week_ending, y = ~pct_4_to_8_hours,
+        name = "4-8 hours",
+        type = 'scatter', mode = 'none', stackgroup = 'one',
+        fillcolor = '#F59E0B'
+      ) %>%
+      add_trace(
+        x = ~week_ending, y = ~pct_8_to_12_hours,
+        name = "8-12 hours",
+        type = 'scatter', mode = 'none', stackgroup = 'one',
+        fillcolor = '#F97316'
+      ) %>%
+      add_trace(
+        x = ~week_ending, y = ~pct_over_12_hours,
+        name = "Over 12 hours",
+        type = 'scatter', mode = 'none', stackgroup = 'one',
+        fillcolor = '#DC2626'
+      ) %>%
+      layout(
+        title = list(text = "A&E Waiting Time Breakdown", font = list(size = 16), pad = list(t = 20)),
+        margin = list(t = 50),
+        xaxis = list(title = "", gridcolor = 'rgba(220, 220, 220, 0.4)', showgrid = TRUE),
+        yaxis = list(
+          title = "Percentage of Attendances",
+          gridcolor = 'rgba(220, 220, 220, 0.4)', showgrid = TRUE,
+          range = c(0, 100), ticksuffix = "%"
+        ),
+        legend = list(orientation = "h", xanchor = "center", x = 0.5, y = -0.1),
+        hoverlabel = list(bgcolor = "white"),
+        hovermode = "x unified"
+      )
+  })
+
   ##### Cancer - 31 Day Standard #####
   # Add to your outputs section
   output$cancer_31_day_plot <- renderPlotly({
