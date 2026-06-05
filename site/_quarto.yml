@@ -1,0 +1,16 @@
+project:
+  type: website
+  output-dir: _site
+  resources:
+    - data/**
+
+website:
+  title: "NHS Scotland Waiting Times"
+  description: "An open, automatically-updated view of NHS Scotland waiting times."
+
+format:
+  dashboard:
+    theme: [cosmo, theme.scss]
+    nav-buttons:
+      - icon: github
+        href: https://github.com/JacksterD/open-data-waiting-times

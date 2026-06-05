@@ -1,0 +1,111 @@
+---
+title: "NHS Scotland Waiting Times"
+---
+
+```{ojs}
+//| output: false
+// Pre-aggregated data, written by pipeline/build-data.R at build time.
+data = FileAttachment("data/waiting_profile.json").json()
+
+// Selector option lists, derived from the data
+boards = Array.from(new Set(data.map(d => d.hb))).sort()
+ptypes = Array.from(new Set(data.map(d => d.ptype))).sort()
+specs  = ["All", ...Array.from(new Set(data.filter(d => d.spec !== "All").map(d => d.spec))).sort()]
+
+fmtMonth = d => d.toLocaleDateString("en-GB", { month: "long", year: "numeric" })
+fmtNum   = n => n == null ? "—" : Math.round(n).toLocaleString("en-GB")
+```
+
+## {.sidebar}
+
+```{ojs}
+viewof hb = Inputs.select(boards, {
+  label: "Health Board",
+  value: boards.includes("Scotland") ? "Scotland" : boards[0]
+})
+viewof ptype = Inputs.select(ptypes, { label: "Patient Type" })
+viewof spec = Inputs.select(specs, { label: "Specialty", value: "All" })
+```
+
+```{ojs}
+//| output: false
+// Apply the current selection (pure filtering — no aggregation needed)
+filtered = data
+  .filter(d => d.hb === hb && d.ptype === ptype && d.spec === spec)
+  .map(d => ({ ...d, date: new Date(d.date), total: d.w1 + d.w2 + d.w3 + d.w4 }))
+  .sort((a, b) => a.date - b.date)
+
+latest = filtered.length ? filtered[filtered.length - 1] : null
+```
+
+# Waiting Profile
+
+## Row {height="22%"}
+
+```{ojs}
+html`<div class="stat-grid">
+  <div class="stat-card primary">
+    <div class="stat-label">Total on Waiting List</div>
+    <div class="stat-value">${latest ? fmtNum(latest.total) : "—"}</div>
+    <div class="stat-sub">${latest ? fmtMonth(latest.date) : ""}</div>
+  </div>
+  <div class="stat-card danger">
+    <div class="stat-label">Waiting Over 52 Weeks</div>
+    <div class="stat-value">${latest ? fmtNum(latest.w3 + latest.w4) : "—"}</div>
+    <div class="stat-sub">${latest ? fmtMonth(latest.date) : ""}</div>
+  </div>
+</div>`
+```
+
+## Row
+
+### Column
+
+```{ojs}
+//| title: Total Number of Patients on Waiting List
+Plot.plot({
+  marginLeft: 70,
+  x: { label: null },
+  y: { grid: true, label: "Number of patients", tickFormat: "~s" },
+  marks: [
+    Plot.areaY(filtered, { x: "date", y: "total", fill: "#0078D4", fillOpacity: 0.12 }),
+    Plot.lineY(filtered, { x: "date", y: "total", stroke: "#0078D4", strokeWidth: 2 }),
+    Plot.ruleY([0]),
+    Plot.tip(filtered, Plot.pointerX({
+      x: "date", y: "total",
+      title: d => `${fmtMonth(d.date)}\n${fmtNum(d.total)} patients`
+    }))
+  ]
+})
+```
+
+## Row
+
+### Column
+
+```{ojs}
+//| title: Breakdown of Patient Waiting Times
+bandOrder = ["0–26 weeks", "26–52 weeks", "52–78 weeks", "Over 78 weeks"]
+
+bands = filtered.flatMap(d => [
+  { date: d.date, band: "0–26 weeks",    value: d.w1 },
+  { date: d.date, band: "26–52 weeks",   value: d.w2 },
+  { date: d.date, band: "52–78 weeks",   value: d.w3 },
+  { date: d.date, band: "Over 78 weeks", value: d.w4 }
+])
+
+Plot.plot({
+  marginLeft: 70,
+  x: { label: null },
+  y: { grid: true, label: "Patients waiting", tickFormat: "~s" },
+  color: {
+    legend: true,
+    domain: bandOrder,
+    range: ["#90CAF9", "#42A5F5", "#1976D2", "#0D47A1"]
+  },
+  marks: [
+    Plot.areaY(bands, { x: "date", y: "value", fill: "band", order: bandOrder }),
+    Plot.ruleY([0])
+  ]
+})
+```
