@@ -346,4 +346,46 @@ cancer62 <- build_cancer(
 )
 write_data(cancer62, "cancer62")
 
+# ===========================================================================
+# A&E Waits (weekly attendances and 4/8/12-hour waits by treatment location)
+# ===========================================================================
+message("Building A&E waits data ...")
+
+hospital_lookup <- read_ckan_csv("c698f450-eeed-41a0-88f7-c1e40a568acc") %>%
+  clean_names() %>%
+  select(hospital_code, hospital_name)
+
+raw_ae <- read_ckan_csv("a5f7ca94-c810-41b5-a7c9-25c18d43e5a4") %>%
+  clean_names() %>%
+  filter(attendance_category == "All") %>%
+  mutate(week_ending = ymd(as.character(week_ending_date))) %>%
+  add_area_name("hbt") %>%
+  filter(!is.na(hb_name), hb_name != "Scotland") %>%
+  left_join(hospital_lookup, by = c("treatment_location" = "hospital_code")) %>%
+  mutate(hospital_name = coalesce(hospital_name, treatment_location))
+
+ae <- raw_ae %>%
+  group_by(hb_name, hospital_name, week_ending) %>%
+  summarise(
+    attendances = sum(number_of_attendances_episode, na.rm = TRUE),
+    within4     = sum(number_within4hours_episode, na.rm = TRUE),
+    over4       = sum(number_over4hours_episode, na.rm = TRUE),
+    over8       = sum(number_over8hours_episode, na.rm = TRUE),
+    over12      = sum(number_over12hours_episode, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  transmute(
+    hb = hb_name,
+    loc = hospital_name,
+    date = format(week_ending, "%Y-%m-%d"),
+    att = round(attendances),
+    p4  = ifelse(attendances > 0, round(within4 / attendances * 100, 1), NA),
+    p48 = ifelse(attendances > 0, round((over4 - over8) / attendances * 100, 1), NA),
+    p812 = ifelse(attendances > 0, round((over8 - over12) / attendances * 100, 1), NA),
+    p12 = ifelse(attendances > 0, round(over12 / attendances * 100, 1), NA)
+  ) %>%
+  arrange(hb, loc, date)
+
+write_data(ae, "ae")
+
 message("Done.")
