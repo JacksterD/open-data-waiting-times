@@ -1,18 +1,62 @@
 /*-- scss:defaults --*/
 
-// NHS Scotland palette (carried over from the Shiny app's bslib theme)
-$primary:   #003087;
-$success:   #009639;
-$danger:    #DA291C;
-$warning:   #FFB81C;
-$body-bg:   #ffffff;
+// NHS Scotland palette, refined for a lighter, modern look
+$primary:    #0061b8;
+$success:    #1a8f4c;
+$danger:     #d4351c;
+$warning:    #d9a300;
+$body-bg:    #f6f8fa;
+$body-color: #1d2935;
 
-$font-family-sans-serif: "Frutiger", "Helvetica Neue", Helvetica, Arial, sans-serif;
+$font-family-sans-serif: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 $headings-font-weight: 600;
+$border-radius: 0.6rem;
 
 /*-- scss:rules --*/
 
-// Reactive stat cards (the static equivalent of the Shiny value boxes)
+:root { --nhs-navy: #003087; }
+
+body { letter-spacing: 0.01em; }
+
+// --- Card depth (charts sit in cards) -------------------------------------
+.card,
+.bslib-card {
+  border: 1px solid #e7edf3;
+  border-radius: 0.6rem;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 3px rgba(16, 24, 40, 0.05);
+}
+
+.card-header {
+  background: transparent;
+  border-bottom: 1px solid #eef2f6;
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: #2a3744;
+}
+
+// All Observable Plot charts pick up the body font
+svg[class^="plot-"],
+svg[class*=" plot-"],
+.card figure svg {
+  font-family: "Inter", system-ui, sans-serif !important;
+}
+
+// --- Navbar ----------------------------------------------------------------
+.navbar {
+  background: #ffffff !important;
+  border-bottom: 1px solid #e7edf3;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.03);
+}
+.navbar .navbar-brand { color: var(--nhs-navy) !important; font-weight: 700; }
+.navbar .nav-link { color: #44525f !important; font-weight: 500; }
+.navbar .nav-link.active { color: $primary !important; }
+
+// --- Sidebar ---------------------------------------------------------------
+.bslib-sidebar-layout > .sidebar {
+  background: #ffffff;
+}
+
+// --- Reactive stat cards (refined) -----------------------------------------
 .stat-grid {
   display: flex;
   gap: 1rem;
@@ -21,51 +65,73 @@ $headings-font-weight: 600;
 
 .stat-card {
   flex: 1 1 200px;
-  padding: 0.8rem 1.25rem;
-  border-radius: 0.5rem;
-  color: #fff;
-  background: $primary;
+  position: relative;
+  background: #ffffff;
+  border: 1px solid #e7edf3;
+  border-radius: 0.6rem;
+  padding: 0.95rem 1.1rem 0.85rem;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 3px rgba(16, 24, 40, 0.06);
+  overflow: hidden;
+  --bar: #{$primary};
+  --num: #{$primary};
 }
 
-.stat-card.primary { background: $primary; }
-.stat-card.danger  { background: $danger; }
-.stat-card.success { background: $success; }
-.stat-card.warning { background: $warning; color: #1d1d1d; }
+.stat-card::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: var(--bar);
+}
+
+.stat-card.primary { --bar: #0061b8; --num: #0061b8; }
+.stat-card.danger  { --bar: #d4351c; --num: #c0341d; }
+.stat-card.success { --bar: #1a8f4c; --num: #157a41; }
+.stat-card.warning { --bar: #f0a800; --num: #9a6b00; }
 
 .stat-label {
-  font-size: 0.85rem;
+  color: #5c6b7a;
+  font-size: 0.72rem;
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
-  opacity: 0.85;
+  letter-spacing: 0.06em;
 }
 
 .stat-value {
-  font-size: 1.85rem;
+  color: var(--num);
+  font-size: 2rem;
   font-weight: 700;
-  line-height: 1.1;
-  margin: 0.2rem 0;
+  line-height: 1.05;
+  margin: 0.2rem 0 0.1rem;
 }
 
 .stat-sub {
-  font-size: 0.8rem;
-  opacity: 0.8;
+  color: #8290a0;
+  font-size: 0.78rem;
 }
 
-// Contextual info box at the top of each page
+// Stat rows shouldn't add their own outer card chrome around the cards
+.stat-row .card,
+.stat-row .bslib-card {
+  border: none;
+  box-shadow: none;
+  background: transparent;
+}
+.stat-row .card-body { padding: 0; }
+
+// --- Contextual info box ---------------------------------------------------
 .info-box {
   background: #eef4fb;
-  border-left: 4px solid $primary;
-  padding: 0.55rem 0.9rem;
-  border-radius: 0.25rem;
+  border-left: 4px solid var(--nhs-navy);
+  padding: 0.6rem 0.95rem;
+  border-radius: 0.4rem;
   font-size: 0.88rem;
-  line-height: 1.4;
-  color: #1d2935;
+  line-height: 1.45;
+  color: #243240;
 }
-
 .info-box p { margin: 0; }
-.info-box strong { color: $primary; }
+.info-box strong { color: var(--nhs-navy); }
 
-// Let the info-box sit flush, without the surrounding dashboard card chrome
 .info-row .card,
 .info-row .bslib-card {
   border: none;

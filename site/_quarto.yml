@@ -13,6 +13,11 @@ format:
     theme: [cosmo, theme.scss]
     scrolling: true
     orientation: rows
+    include-in-header:
+      text: |
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     nav-buttons:
       - icon: github
         href: https://github.com/JacksterD/open-data-waiting-times
