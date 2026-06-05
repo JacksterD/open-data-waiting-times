@@ -123,4 +123,54 @@ waiting_profile <- bind_rows(by_specialty, all_specialties) %>%
 
 write_data(waiting_profile, "waiting_profile")
 
+# ===========================================================================
+# Balance tab  (additions to / removals from the waiting list)
+# ===========================================================================
+message("Building balance data ...")
+
+bal_cols <- c("additions", "removals", "attended", "referred_back_to_gp",
+              "transferred", "treatment_no_longer_required", "other_reasons")
+
+raw_bal <- read_csv(
+  get_ckan_url("10dd6ca4-1868-464c-8d20-7f9261070484"),
+  show_col_types = FALSE
+) %>%
+  clean_names() %>%
+  mutate(date = ymd(as.character(quarter_ending))) %>%
+  filter(date >= ymd("2019-01-01")) %>%
+  add_area_name("hbt") %>%
+  left_join(specialty_lookup, by = c("specialty" = "specialty")) %>%
+  filter(!is.na(specialty_name)) %>%
+  filter(specialty_name != "General Surgery (excl Vascular)")
+
+if (!"patient_type" %in% names(raw_bal)) raw_bal$patient_type <- "All"
+
+bal_by_specialty <- raw_bal %>%
+  group_by(hb_name, patient_type, spec = specialty_name, date) %>%
+  summarise(across(all_of(bal_cols), ~ sum(.x, na.rm = TRUE)), .groups = "drop")
+
+bal_all <- raw_bal %>%
+  group_by(hb_name, patient_type, date) %>%
+  summarise(across(all_of(bal_cols), ~ sum(.x, na.rm = TRUE)), .groups = "drop") %>%
+  mutate(spec = "All")
+
+balance <- bind_rows(bal_by_specialty, bal_all) %>%
+  transmute(
+    hb = hb_name,
+    ptype = patient_type,
+    spec,
+    date = format(date, "%Y-%m-%d"),
+    add = round(additions),
+    rem = round(removals),
+    bal = round(additions - removals),
+    attended = round(attended),
+    referred = round(referred_back_to_gp),
+    transferred = round(transferred),
+    notreat = round(treatment_no_longer_required),
+    other = round(other_reasons)
+  ) %>%
+  arrange(hb, ptype, spec, date)
+
+write_data(balance, "balance")
+
 message("Done.")
