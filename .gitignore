@@ -1,0 +1,13 @@
+# Quarto build artefacts
+site/_site/
+site/.quarto/
+/.quarto/
+
+# Generated data (rebuilt by the pipeline in CI; not committed)
+site/data/*.json
+
+# R
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata

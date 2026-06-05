@@ -1,0 +1,52 @@
+/*-- scss:defaults --*/
+
+// NHS Scotland palette (carried over from the Shiny app's bslib theme)
+$primary:   #003087;
+$success:   #009639;
+$danger:    #DA291C;
+$warning:   #FFB81C;
+$body-bg:   #ffffff;
+
+$font-family-sans-serif: "Frutiger", "Helvetica Neue", Helvetica, Arial, sans-serif;
+$headings-font-weight: 600;
+
+/*-- scss:rules --*/
+
+// Reactive stat cards (the static equivalent of the Shiny value boxes)
+.stat-grid {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.stat-card {
+  flex: 1 1 200px;
+  padding: 1rem 1.25rem;
+  border-radius: 0.5rem;
+  color: #fff;
+  background: $primary;
+}
+
+.stat-card.primary { background: $primary; }
+.stat-card.danger  { background: $danger; }
+.stat-card.success { background: $success; }
+.stat-card.warning { background: $warning; color: #1d1d1d; }
+
+.stat-label {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.85;
+}
+
+.stat-value {
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1.1;
+  margin: 0.25rem 0;
+}
+
+.stat-sub {
+  font-size: 0.8rem;
+  opacity: 0.8;
+}
