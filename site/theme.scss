@@ -21,7 +21,7 @@ $headings-font-weight: 600;
 
 .stat-card {
   flex: 1 1 200px;
-  padding: 1rem 1.25rem;
+  padding: 0.8rem 1.25rem;
   border-radius: 0.5rem;
   color: #fff;
   background: $primary;
@@ -40,10 +40,10 @@ $headings-font-weight: 600;
 }
 
 .stat-value {
-  font-size: 2rem;
+  font-size: 1.85rem;
   font-weight: 700;
   line-height: 1.1;
-  margin: 0.25rem 0;
+  margin: 0.2rem 0;
 }
 
 .stat-sub {
