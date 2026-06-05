@@ -185,4 +185,56 @@ balance <- bind_rows(bal_by_specialty, bal_all) %>%
 
 write_data(balance, "balance")
 
+# ===========================================================================
+# 12-week Target Performance  (completed waits / stage of treatment)
+# ===========================================================================
+message("Building 12-week target data ...")
+
+raw_wt <- read_ckan_csv("4c091d26-1492-41e5-9577-832cbc1cd4cf") %>%
+  clean_names() %>%
+  rename(waited_over_12_weeks = waited_over12weeks) %>%
+  mutate(date = ymd(as.character(quarter_ending))) %>%
+  filter(date >= ymd("2019-01-01")) %>%
+  filter(!is.na(number_seen)) %>%
+  add_area_name("hbt") %>%
+  left_join(specialty_lookup, by = c("specialty" = "specialty")) %>%
+  filter(!is.na(specialty_name)) %>%
+  filter(specialty_name != "General Surgery (excl Vascular)")
+
+if (!"patient_type" %in% names(raw_wt)) raw_wt$patient_type <- "All"
+
+summarise_target <- function(df, ...) {
+  df %>%
+    group_by(...) %>%
+    summarise(
+      seen   = sum(number_seen, na.rm = TRUE),
+      over12 = sum(waited_over_12_weeks, na.rm = TRUE),
+      # weighted by number seen, matching the Shiny app's weighted.mean()
+      median = weighted.mean(median, number_seen, na.rm = TRUE),
+      p90    = weighted.mean(x90th_percentile, number_seen, na.rm = TRUE),
+      .groups = "drop"
+    )
+}
+
+wt_by_specialty <- summarise_target(raw_wt, hb_name, patient_type,
+                                    spec = specialty_name, date)
+wt_all <- summarise_target(raw_wt, hb_name, patient_type, date) %>%
+  mutate(spec = "All")
+
+target12 <- bind_rows(wt_by_specialty, wt_all) %>%
+  transmute(
+    hb = hb_name,
+    ptype = patient_type,
+    spec,
+    date = format(date, "%Y-%m-%d"),
+    seen = round(seen),
+    over12 = round(over12),
+    within12 = round(seen - over12),
+    median = ifelse(is.nan(median), NA, round(median)),
+    p90 = ifelse(is.nan(p90), NA, round(p90))
+  ) %>%
+  arrange(hb, ptype, spec, date)
+
+write_data(target12, "target12")
+
 message("Done.")
