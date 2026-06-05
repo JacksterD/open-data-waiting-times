@@ -107,7 +107,19 @@ Plot.plot({
   },
   marks: [
     Plot.areaY(bands, { x: "date", y: "value", fill: "band", order: bandOrder }),
-    Plot.ruleY([0])
+    Plot.ruleY([0]),
+    Plot.tip(filtered, Plot.pointerX({
+      x: "date",
+      y: d => d.w1 + d.w2 + d.w3 + d.w4,
+      title: d => [
+        fmtMonth(d.date),
+        `0–26 weeks: ${fmtNum(d.w1)}`,
+        `26–52 weeks: ${fmtNum(d.w2)}`,
+        `52–78 weeks: ${fmtNum(d.w3)}`,
+        `Over 78 weeks: ${fmtNum(d.w4)}`,
+        `Total: ${fmtNum(d.w1 + d.w2 + d.w3 + d.w4)}`
+      ].join("\n")
+    }))
   ]
 })
 ```
