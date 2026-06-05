@@ -132,7 +132,9 @@ viewof wpPtype = Inputs.select(wpPtypes, { label: "Patient Type" })
 viewof wpSpec = Inputs.select(wpSpecs, { label: "Specialty", value: "All" })
 ```
 
-## Row {height="160px"}
+## Column
+
+### Row {height="160px"}
 
 ```{ojs}
 html`<div class="stat-grid">
@@ -149,9 +151,8 @@ html`<div class="stat-grid">
 </div>`
 ```
 
-## Row
+### Row
 
-### Column
 
 ```{ojs}
 //| title: Total Number of Patients on Waiting List
@@ -172,9 +173,8 @@ Plot.plot({
 })
 ```
 
-## Row
+### Row
 
-### Column
 
 ```{ojs}
 //| title: Breakdown of Patient Waiting Times
@@ -213,7 +213,9 @@ viewof balPtype = Inputs.select(balPtypes, { label: "Patient Type" })
 viewof balSpec = Inputs.select(balSpecs, { label: "Specialty", value: "All" })
 ```
 
-## Row {height="160px"}
+## Column
+
+### Row {height="160px"}
 
 ```{ojs}
 html`<div class="stat-grid">
@@ -235,9 +237,8 @@ html`<div class="stat-grid">
 </div>`
 ```
 
-## Row
+### Row
 
-### Column
 
 ```{ojs}
 //| title: Waiting List Additions and Removals
@@ -259,9 +260,8 @@ Plot.plot({
 })
 ```
 
-## Row
+### Row
 
-### Column
 
 ```{ojs}
 //| title: Net Change in Waiting List Size
@@ -284,9 +284,8 @@ Plot.plot({
 })
 ```
 
-## Row
+### Row
 
-### Column
 
 ```{ojs}
 //| title: Reasons for Removal from Waiting List
@@ -322,7 +321,9 @@ viewof t12Ptype = Inputs.select(t12Ptypes, { label: "Patient Type" })
 viewof t12Spec = Inputs.select(t12Specs, { label: "Specialty", value: "All" })
 ```
 
-## Row {height="160px"}
+## Column
+
+### Row {height="160px"}
 
 ```{ojs}
 html`<div class="stat-grid">
@@ -339,9 +340,8 @@ html`<div class="stat-grid">
 </div>`
 ```
 
-## Row
+### Row
 
-### Column
 
 ```{ojs}
 //| title: Number of Patients Treated by Wait Time
@@ -363,9 +363,8 @@ Plot.plot({
 })
 ```
 
-## Row
+### Row
 
-### Column
 
 ```{ojs}
 //| title: Cumulative Number of Patients Treated
@@ -387,9 +386,8 @@ Plot.plot({
 })
 ```
 
-## Row
+### Row
 
-### Column
 
 ```{ojs}
 //| title: Percentage of Patients Treated by Treatment Wait Time
@@ -414,9 +412,8 @@ Plot.plot({
 })
 ```
 
-## Row
+### Row
 
-### Column
 
 ```{ojs}
 //| title: Breakdown of Wait Times
@@ -448,7 +445,9 @@ viewof diagType = Inputs.select(diagTypes, { label: "Diagnostic Test Type" })
 viewof diagDesc = Inputs.select(diagDescs, { label: "Diagnostic Test Description" })
 ```
 
-## Row {height="160px"}
+## Column
+
+### Row {height="160px"}
 
 ```{ojs}
 html`<div class="stat-grid">
@@ -460,9 +459,8 @@ html`<div class="stat-grid">
 </div>`
 ```
 
-## Row
+### Row
 
-### Column
 
 ```{ojs}
 //| title: Diagnostic Waiting Patients Over Time
