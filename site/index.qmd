@@ -4,44 +4,31 @@ title: "NHS Scotland Waiting Times"
 
 ```{ojs}
 //| output: false
-// Pre-aggregated data, written by pipeline/build-data.R at build time.
-data = FileAttachment("data/waiting_profile.json").json()
-
-// Selector option lists, derived from the data
-boards = Array.from(new Set(data.map(d => d.hb))).sort()
-ptypes = Array.from(new Set(data.map(d => d.ptype))).sort()
-specs  = ["All", ...Array.from(new Set(data.filter(d => d.spec !== "All").map(d => d.spec))).sort()]
-
-fmtMonth = d => d.toLocaleDateString("en-GB", { month: "long", year: "numeric" })
-fmtNum   = n => n == null ? "—" : Math.round(n).toLocaleString("en-GB")
-```
-
-## {.sidebar}
-
-```{ojs}
-viewof hb = Inputs.select(boards, {
-  label: "Health Board",
-  value: boards.includes("Scotland") ? "Scotland" : boards[0]
-})
-viewof ptype = Inputs.select(ptypes, { label: "Patient Type" })
-viewof spec = Inputs.select(specs, { label: "Specialty", value: "All" })
+// ---- Shared helpers -------------------------------------------------------
+fmtMonth   = d => d.toLocaleDateString("en-GB", { month: "long", year: "numeric" })
+fmtQuarter = d => `${d.getFullYear()} Q${Math.floor(d.getMonth() / 3) + 1}`
+fmtNum     = n => n == null ? "—" : Math.round(n).toLocaleString("en-GB")
+uniqSorted = arr => Array.from(new Set(arr)).sort()
+boardDefault = bs => bs.includes("Scotland") ? "Scotland" : bs[0]
 ```
 
 ```{ojs}
 //| output: false
-// Apply the current selection (pure filtering — no aggregation needed)
-filtered = data
-  .filter(d => d.hb === hb && d.ptype === ptype && d.spec === spec)
+// ---- Waiting Profile data -------------------------------------------------
+wpData    = FileAttachment("data/waiting_profile.json").json()
+wpBoards  = uniqSorted(wpData.map(d => d.hb))
+wpPtypes  = uniqSorted(wpData.map(d => d.ptype))
+wpSpecs   = ["All", ...uniqSorted(wpData.filter(d => d.spec !== "All").map(d => d.spec))]
+
+wpFiltered = wpData
+  .filter(d => d.hb === wpHb && d.ptype === wpPtype && d.spec === wpSpec)
   .map(d => ({ ...d, date: new Date(d.date), total: d.w1 + d.w2 + d.w3 + d.w4 }))
   .sort((a, b) => a.date - b.date)
 
-latest = filtered.length ? filtered[filtered.length - 1] : null
+wpLatest = wpFiltered.length ? wpFiltered[wpFiltered.length - 1] : null
 
-// Long-format data for the stacked breakdown chart (defined here, not in the
-// card block, so each chart card holds a single Plot expression)
 bandOrder = ["0–26 weeks", "26–52 weeks", "52–78 weeks", "Over 78 weeks"]
-
-bands = filtered.flatMap(d => [
+bands = wpFiltered.flatMap(d => [
   { date: d.date, band: "0–26 weeks",    value: d.w1 },
   { date: d.date, band: "26–52 weeks",   value: d.w2 },
   { date: d.date, band: "52–78 weeks",   value: d.w3 },
@@ -49,7 +36,101 @@ bands = filtered.flatMap(d => [
 ])
 ```
 
+```{ojs}
+//| output: false
+// ---- Balance data ---------------------------------------------------------
+balData   = FileAttachment("data/balance.json").json()
+balBoards = uniqSorted(balData.map(d => d.hb))
+balPtypes = uniqSorted(balData.map(d => d.ptype))
+balSpecs  = ["All", ...uniqSorted(balData.filter(d => d.spec !== "All").map(d => d.spec))]
+
+balFiltered = balData
+  .filter(d => d.hb === balHb && d.ptype === balPtype && d.spec === balSpec)
+  .map(d => ({ ...d, date: new Date(d.date) }))
+  .sort((a, b) => a.date - b.date)
+
+balLatest = balFiltered.length ? balFiltered[balFiltered.length - 1] : null
+
+addRem = balFiltered.flatMap(d => [
+  { date: d.date, series: "Additions", value: d.add },
+  { date: d.date, series: "Removals", value: d.rem }
+])
+
+reasonOrder = ["Attended", "Referred", "Transferred", "No Treatment", "Other"]
+reasons = balFiltered.flatMap(d => {
+  const parts = { Attended: d.attended, Referred: d.referred, Transferred: d.transferred, "No Treatment": d.notreat, Other: d.other }
+  const sum = reasonOrder.reduce((a, r) => a + (parts[r] || 0), 0)
+  return reasonOrder.map(r => ({ date: d.date, reason: r, pct: sum ? (parts[r] || 0) / sum * 100 : 0 }))
+})
+```
+
+```{ojs}
+//| output: false
+// ---- 12-week Target data --------------------------------------------------
+t12Data   = FileAttachment("data/target12.json").json()
+t12Boards = uniqSorted(t12Data.map(d => d.hb))
+t12Ptypes = uniqSorted(t12Data.map(d => d.ptype))
+t12Specs  = ["All", ...uniqSorted(t12Data.filter(d => d.spec !== "All").map(d => d.spec))]
+
+t12Filtered = t12Data
+  .filter(d => d.hb === t12Hb && d.ptype === t12Ptype && d.spec === t12Spec)
+  .map(d => ({ ...d, date: new Date(d.date) }))
+  .sort((a, b) => a.date - b.date)
+
+t12Latest = t12Filtered.length ? t12Filtered[t12Filtered.length - 1] : null
+t12Pct = t12Latest && t12Latest.seen ? t12Latest.within12 / t12Latest.seen * 100 : null
+t12Theme = t12Pct == null ? "primary" : t12Pct >= 95 ? "success" : t12Pct >= 80 ? "warning" : "danger"
+
+treatedSeries = ["Within 12 weeks", "Over 12 weeks"]
+treatedLong = t12Filtered.flatMap(d => [
+  { date: d.date, series: "Within 12 weeks", value: d.within12 },
+  { date: d.date, series: "Over 12 weeks", value: d.over12 }
+])
+pctLong = t12Filtered.flatMap(d => {
+  const tot = d.seen || 0
+  return [
+    { date: d.date, series: "Within 12 weeks", pct: tot ? d.within12 / tot * 100 : 0 },
+    { date: d.date, series: "Over 12 weeks", pct: tot ? d.over12 / tot * 100 : 0 }
+  ]
+})
+waitLong = t12Filtered.flatMap(d => [
+  { date: d.date, metric: "Median", value: d.median },
+  { date: d.date, metric: "90th percentile", value: d.p90 }
+])
+```
+
+```{ojs}
+//| output: false
+// ---- Diagnostic Waits data ------------------------------------------------
+diagData   = FileAttachment("data/diagnostics.json").json()
+diagGroups = ["0 to 4 weeks", "4 to 8 weeks", "8 to 18 weeks", "4 to 12 months", "Over 1 year", "Other"]
+diagBoards = uniqSorted(diagData.map(d => d.hb))
+diagTypes  = uniqSorted(diagData.map(d => d.type))
+diagDescs  = uniqSorted(diagData.filter(d => d.type === diagType).map(d => d.desc))
+
+diagFiltered = diagData
+  .filter(d => d.hb === diagHb && d.type === diagType && d.desc === diagDesc)
+  .map(d => ({ ...d, date: new Date(d.date) }))
+
+diagByMonth = Array.from(d3.group(diagFiltered, d => +d.date), ([t, rows]) => {
+  const date = new Date(t)
+  const m = {}; diagGroups.forEach(g => m[g] = 0)
+  let total = 0; rows.forEach(r => { m[r.grp] = (m[r.grp] || 0) + r.n; total += r.n })
+  return { date, total, ...m }
+}).sort((a, b) => a.date - b.date)
+
+diagLatest = diagByMonth.length ? diagByMonth[diagByMonth.length - 1] : null
+```
+
 # Waiting Profile
+
+## {.sidebar}
+
+```{ojs}
+viewof wpHb = Inputs.select(wpBoards, { label: "Health Board", value: boardDefault(wpBoards) })
+viewof wpPtype = Inputs.select(wpPtypes, { label: "Patient Type" })
+viewof wpSpec = Inputs.select(wpSpecs, { label: "Specialty", value: "All" })
+```
 
 ## Row {height="160px"}
 
@@ -57,13 +138,13 @@ bands = filtered.flatMap(d => [
 html`<div class="stat-grid">
   <div class="stat-card primary">
     <div class="stat-label">Total on Waiting List</div>
-    <div class="stat-value">${latest ? fmtNum(latest.total) : "—"}</div>
-    <div class="stat-sub">${latest ? fmtMonth(latest.date) : ""}</div>
+    <div class="stat-value">${wpLatest ? fmtNum(wpLatest.total) : "—"}</div>
+    <div class="stat-sub">${wpLatest ? fmtMonth(wpLatest.date) : ""}</div>
   </div>
   <div class="stat-card danger">
     <div class="stat-label">Waiting Over 52 Weeks</div>
-    <div class="stat-value">${latest ? fmtNum(latest.w3 + latest.w4) : "—"}</div>
-    <div class="stat-sub">${latest ? fmtMonth(latest.date) : ""}</div>
+    <div class="stat-value">${wpLatest ? fmtNum(wpLatest.w3 + wpLatest.w4) : "—"}</div>
+    <div class="stat-sub">${wpLatest ? fmtMonth(wpLatest.date) : ""}</div>
   </div>
 </div>`
 ```
@@ -80,10 +161,10 @@ Plot.plot({
   x: { label: null },
   y: { grid: true, label: "Number of patients", tickFormat: "~s" },
   marks: [
-    Plot.areaY(filtered, { x: "date", y: "total", fill: "#0078D4", fillOpacity: 0.12 }),
-    Plot.lineY(filtered, { x: "date", y: "total", stroke: "#0078D4", strokeWidth: 2 }),
+    Plot.areaY(wpFiltered, { x: "date", y: "total", fill: "#0078D4", fillOpacity: 0.12 }),
+    Plot.lineY(wpFiltered, { x: "date", y: "total", stroke: "#0078D4", strokeWidth: 2 }),
     Plot.ruleY([0]),
-    Plot.tip(filtered, Plot.pointerX({
+    Plot.tip(wpFiltered, Plot.pointerX({
       x: "date", y: "total",
       title: d => `${fmtMonth(d.date)}\n${fmtNum(d.total)} patients`
     }))
@@ -102,15 +183,11 @@ Plot.plot({
   marginLeft: 70,
   x: { label: null },
   y: { grid: true, label: "Patients waiting", tickFormat: "~s" },
-  color: {
-    legend: true,
-    domain: bandOrder,
-    range: ["#90CAF9", "#42A5F5", "#1976D2", "#0D47A1"]
-  },
+  color: { legend: true, domain: bandOrder, range: ["#90CAF9", "#42A5F5", "#1976D2", "#0D47A1"] },
   marks: [
     Plot.areaY(bands, { x: "date", y: "value", fill: "band", order: bandOrder }),
     Plot.ruleY([0]),
-    Plot.tip(filtered, Plot.pointerX({
+    Plot.tip(wpFiltered, Plot.pointerX({
       x: "date",
       y: d => d.w1 + d.w2 + d.w3 + d.w4,
       title: d => [
@@ -128,33 +205,12 @@ Plot.plot({
 
 # Balance
 
+## {.sidebar}
+
 ```{ojs}
-//| output: false
-balanceData = FileAttachment("data/balance.json").json()
-
-balanceFiltered = balanceData
-  .filter(d => d.hb === hb && d.ptype === ptype && d.spec === spec)
-  .map(d => ({ ...d, date: new Date(d.date) }))
-  .sort((a, b) => a.date - b.date)
-
-balanceLatest = balanceFiltered.length ? balanceFiltered[balanceFiltered.length - 1] : null
-
-fmtQuarter = d => `${d.getFullYear()} Q${Math.floor(d.getMonth() / 3) + 1}`
-
-// Additions / removals in long form for a two-series line chart
-addRem = balanceFiltered.flatMap(d => [
-  { date: d.date, series: "Additions", value: d.add },
-  { date: d.date, series: "Removals", value: d.rem }
-])
-
-reasonOrder = ["Attended", "Referred", "Transferred", "No Treatment", "Other"]
-
-// Removal reasons as a share of total removals (sums to 100% each quarter)
-reasons = balanceFiltered.flatMap(d => {
-  const parts = { Attended: d.attended, Referred: d.referred, Transferred: d.transferred, "No Treatment": d.notreat, Other: d.other }
-  const sum = reasonOrder.reduce((a, r) => a + (parts[r] || 0), 0)
-  return reasonOrder.map(r => ({ date: d.date, reason: r, pct: sum ? (parts[r] || 0) / sum * 100 : 0 }))
-})
+viewof balHb = Inputs.select(balBoards, { label: "Health Board", value: boardDefault(balBoards) })
+viewof balPtype = Inputs.select(balPtypes, { label: "Patient Type" })
+viewof balSpec = Inputs.select(balSpecs, { label: "Specialty", value: "All" })
 ```
 
 ## Row {height="160px"}
@@ -163,18 +219,18 @@ reasons = balanceFiltered.flatMap(d => {
 html`<div class="stat-grid">
   <div class="stat-card primary">
     <div class="stat-label">Additions</div>
-    <div class="stat-value">${balanceLatest ? fmtNum(balanceLatest.add) : "—"}</div>
-    <div class="stat-sub">${balanceLatest ? fmtQuarter(balanceLatest.date) : ""}</div>
+    <div class="stat-value">${balLatest ? fmtNum(balLatest.add) : "—"}</div>
+    <div class="stat-sub">${balLatest ? fmtQuarter(balLatest.date) : ""}</div>
   </div>
   <div class="stat-card primary">
     <div class="stat-label">Removals</div>
-    <div class="stat-value">${balanceLatest ? fmtNum(balanceLatest.rem) : "—"}</div>
-    <div class="stat-sub">${balanceLatest ? fmtQuarter(balanceLatest.date) : ""}</div>
+    <div class="stat-value">${balLatest ? fmtNum(balLatest.rem) : "—"}</div>
+    <div class="stat-sub">${balLatest ? fmtQuarter(balLatest.date) : ""}</div>
   </div>
-  <div class="stat-card ${balanceLatest && balanceLatest.bal > 0 ? "danger" : "success"}">
+  <div class="stat-card ${balLatest && balLatest.bal > 0 ? "danger" : "success"}">
     <div class="stat-label">Net Change</div>
-    <div class="stat-value">${balanceLatest ? fmtNum(balanceLatest.bal) : "—"}</div>
-    <div class="stat-sub">${balanceLatest ? fmtQuarter(balanceLatest.date) : ""}</div>
+    <div class="stat-value">${balLatest ? fmtNum(balLatest.bal) : "—"}</div>
+    <div class="stat-sub">${balLatest ? fmtQuarter(balLatest.date) : ""}</div>
   </div>
 </div>`
 ```
@@ -194,7 +250,7 @@ Plot.plot({
   marks: [
     Plot.lineY(addRem, { x: "date", y: "value", stroke: "series", strokeWidth: 2 }),
     Plot.ruleY([0]),
-    Plot.tip(balanceFiltered, Plot.pointerX({
+    Plot.tip(balFiltered, Plot.pointerX({
       x: "date",
       y: d => Math.max(d.add, d.rem),
       title: d => `${fmtQuarter(d.date)}\nAdditions: ${fmtNum(d.add)}\nRemovals: ${fmtNum(d.rem)}`
@@ -215,12 +271,12 @@ Plot.plot({
   x: { label: null },
   y: { grid: true, label: "Net Change in Number of Patients", tickFormat: "~s" },
   marks: [
-    Plot.rectY(balanceFiltered, {
+    Plot.rectY(balFiltered, {
       x: "date", y: "bal", interval: "3 months",
       fill: d => d.bal >= 0 ? "#DC2626" : "#059669"
     }),
     Plot.ruleY([0]),
-    Plot.tip(balanceFiltered, Plot.pointerX({
+    Plot.tip(balFiltered, Plot.pointerX({
       x: "date", y: "bal",
       title: d => `${fmtQuarter(d.date)}\nNet change: ${fmtNum(d.bal)}`
     }))
@@ -243,7 +299,7 @@ Plot.plot({
   marks: [
     Plot.areaY(reasons, { x: "date", y: "pct", fill: "reason", order: reasonOrder }),
     Plot.ruleY([0]),
-    Plot.tip(balanceFiltered, Plot.pointerX({
+    Plot.tip(balFiltered, Plot.pointerX({
       x: "date",
       y: () => 100,
       title: d => {
@@ -258,38 +314,12 @@ Plot.plot({
 
 # 12-Week Target
 
+## {.sidebar}
+
 ```{ojs}
-//| output: false
-target12Data = FileAttachment("data/target12.json").json()
-
-t12Filtered = target12Data
-  .filter(d => d.hb === hb && d.ptype === ptype && d.spec === spec)
-  .map(d => ({ ...d, date: new Date(d.date) }))
-  .sort((a, b) => a.date - b.date)
-
-t12Latest = t12Filtered.length ? t12Filtered[t12Filtered.length - 1] : null
-t12Pct = t12Latest && t12Latest.seen ? t12Latest.within12 / t12Latest.seen * 100 : null
-t12Theme = t12Pct == null ? "primary" : t12Pct >= 95 ? "success" : t12Pct >= 80 ? "warning" : "danger"
-
-treatedSeries = ["Within 12 weeks", "Over 12 weeks"]
-
-treatedLong = t12Filtered.flatMap(d => [
-  { date: d.date, series: "Within 12 weeks", value: d.within12 },
-  { date: d.date, series: "Over 12 weeks", value: d.over12 }
-])
-
-pctLong = t12Filtered.flatMap(d => {
-  const tot = d.seen || 0
-  return [
-    { date: d.date, series: "Within 12 weeks", pct: tot ? d.within12 / tot * 100 : 0 },
-    { date: d.date, series: "Over 12 weeks", pct: tot ? d.over12 / tot * 100 : 0 }
-  ]
-})
-
-waitLong = t12Filtered.flatMap(d => [
-  { date: d.date, metric: "Median", value: d.median },
-  { date: d.date, metric: "90th percentile", value: d.p90 }
-])
+viewof t12Hb = Inputs.select(t12Boards, { label: "Health Board", value: boardDefault(t12Boards) })
+viewof t12Ptype = Inputs.select(t12Ptypes, { label: "Patient Type" })
+viewof t12Spec = Inputs.select(t12Specs, { label: "Specialty", value: "All" })
 ```
 
 ## Row {height="160px"}
@@ -410,35 +440,10 @@ Plot.plot({
 
 # Diagnostic Waits
 
-```{ojs}
-//| output: false
-diagData = FileAttachment("data/diagnostics.json").json()
-
-diagGroups = ["0 to 4 weeks", "4 to 8 weeks", "8 to 18 weeks", "4 to 12 months", "Over 1 year", "Other"]
-
-diagTypes = Array.from(new Set(diagData.map(d => d.type))).sort()
-
-// Descriptions available for the selected test type (cascading selector)
-diagDescs = Array.from(new Set(diagData.filter(d => d.type === diagType).map(d => d.desc))).sort()
-
-diagFiltered = diagData
-  .filter(d => d.hb === hb && d.type === diagType && d.desc === diagDesc)
-  .map(d => ({ ...d, date: new Date(d.date) }))
-
-// One row per month with each band's value, for stacking tooltips + totals
-diagByMonth = Array.from(d3.group(diagFiltered, d => +d.date), ([t, rows]) => {
-  const date = new Date(t)
-  const m = {}; diagGroups.forEach(g => m[g] = 0)
-  let total = 0; rows.forEach(r => { m[r.grp] = (m[r.grp] || 0) + r.n; total += r.n })
-  return { date, total, ...m }
-}).sort((a, b) => a.date - b.date)
-
-diagLatest = diagByMonth.length ? diagByMonth[diagByMonth.length - 1] : null
-```
-
-## Row {height="92px"}
+## {.sidebar}
 
 ```{ojs}
+viewof diagHb = Inputs.select(diagBoards, { label: "Health Board", value: boardDefault(diagBoards) })
 viewof diagType = Inputs.select(diagTypes, { label: "Diagnostic Test Type" })
 viewof diagDesc = Inputs.select(diagDescs, { label: "Diagnostic Test Description" })
 ```
