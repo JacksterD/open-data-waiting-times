@@ -31,13 +31,33 @@ suppressPackageStartupMessages({
 out_dir <- file.path("site", "data")
 dir.create(out_dir, showWarnings = FALSE, recursive = TRUE)
 
-# --- CKAN helper -----------------------------------------------------------
+# --- Network helpers --------------------------------------------------------
+# The NHS open-data API occasionally drops a connection mid-download, so wrap
+# every network call in a retry with exponential backoff. This keeps the
+# weekly scheduled build resilient to transient API hiccups.
+with_retry <- function(fn, tries = 5, wait = 5) {
+  for (i in seq_len(tries)) {
+    result <- tryCatch(fn(), error = function(e) e)
+    if (!inherits(result, "error")) return(result)
+    if (i == tries) stop(result)
+    message(sprintf("  attempt %d/%d failed (%s) — retrying in %ds",
+                    i, tries, conditionMessage(result), wait))
+    Sys.sleep(wait)
+    wait <- wait * 2
+  }
+}
+
 get_ckan_url <- function(resource_id) {
   api_url <- paste0(
     "https://www.opendata.nhs.scot/api/3/action/resource_show?id=",
     resource_id
   )
-  fromJSON(api_url)$result$url
+  with_retry(function() fromJSON(api_url)$result$url)
+}
+
+# Resolve a CKAN resource and read it as a CSV, retrying transient failures.
+read_ckan_csv <- function(resource_id) {
+  with_retry(function() read_csv(get_ckan_url(resource_id), show_col_types = FALSE))
 }
 
 # --- Health board lookup ---------------------------------------------------
@@ -65,20 +85,15 @@ write_data <- function(df, name) {
 }
 
 # --- Specialty lookup ------------------------------------------------------
-specialty_lookup <- read_csv(
-  get_ckan_url("6f2e3da0-b1b5-46cc-ac04-78495daedfa3"),
-  show_col_types = FALSE
-) %>% clean_names()
+specialty_lookup <- read_ckan_csv("6f2e3da0-b1b5-46cc-ac04-78495daedfa3") %>%
+  clean_names()
 
 # ===========================================================================
 # Waiting Profile tab  (ongoing waits / stage of treatment)
 # ===========================================================================
 message("Building waiting profile data ...")
 
-raw <- read_csv(
-  get_ckan_url("093f04a5-bb8f-4ce6-9016-d4fa0a912630"),
-  show_col_types = FALSE
-) %>%
+raw <- read_ckan_csv("093f04a5-bb8f-4ce6-9016-d4fa0a912630") %>%
   clean_names() %>%
   mutate(month_date = ymd(as.character(month_end))) %>%
   filter(month_date >= ymd("2019-01-01")) %>%
@@ -131,10 +146,7 @@ message("Building balance data ...")
 bal_cols <- c("additions", "removals", "attended", "referred_back_to_gp",
               "transferred", "treatment_no_longer_required", "other_reasons")
 
-raw_bal <- read_csv(
-  get_ckan_url("10dd6ca4-1868-464c-8d20-7f9261070484"),
-  show_col_types = FALSE
-) %>%
+raw_bal <- read_ckan_csv("10dd6ca4-1868-464c-8d20-7f9261070484") %>%
   clean_names() %>%
   mutate(date = ymd(as.character(quarter_ending))) %>%
   filter(date >= ymd("2019-01-01")) %>%
