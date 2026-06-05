@@ -122,7 +122,7 @@ diagByMonth = Array.from(d3.group(diagFiltered, d => +d.date), ([t, rows]) => {
 diagLatest = diagByMonth.length ? diagByMonth[diagByMonth.length - 1] : null
 ```
 
-# Waiting Profile
+# Waiting Profile {orientation="rows"}
 
 ## {.sidebar}
 
@@ -203,7 +203,7 @@ Plot.plot({
 })
 ```
 
-# Balance
+# Balance {orientation="rows"}
 
 ## {.sidebar}
 
@@ -312,7 +312,7 @@ Plot.plot({
 })
 ```
 
-# 12-Week Target
+# 12-Week Target {orientation="rows"}
 
 ## {.sidebar}
 
@@ -438,7 +438,7 @@ Plot.plot({
 })
 ```
 
-# Diagnostic Waits
+# Diagnostic Waits {orientation="rows"}
 
 ## {.sidebar}
 
