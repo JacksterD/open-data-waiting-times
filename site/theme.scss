@@ -50,3 +50,26 @@ $headings-font-weight: 600;
   font-size: 0.8rem;
   opacity: 0.8;
 }
+
+// Contextual info box at the top of each page
+.info-box {
+  background: #eef4fb;
+  border-left: 4px solid $primary;
+  padding: 0.55rem 0.9rem;
+  border-radius: 0.25rem;
+  font-size: 0.88rem;
+  line-height: 1.4;
+  color: #1d2935;
+}
+
+.info-box p { margin: 0; }
+.info-box strong { color: $primary; }
+
+// Let the info-box sit flush, without the surrounding dashboard card chrome
+.info-row .card,
+.info-row .bslib-card {
+  border: none;
+  box-shadow: none;
+  background: transparent;
+}
+.info-row .card-body { padding: 0; }
