@@ -36,6 +36,17 @@ filtered = data
   .sort((a, b) => a.date - b.date)
 
 latest = filtered.length ? filtered[filtered.length - 1] : null
+
+// Long-format data for the stacked breakdown chart (defined here, not in the
+// card block, so each chart card holds a single Plot expression)
+bandOrder = ["0–26 weeks", "26–52 weeks", "52–78 weeks", "Over 78 weeks"]
+
+bands = filtered.flatMap(d => [
+  { date: d.date, band: "0–26 weeks",    value: d.w1 },
+  { date: d.date, band: "26–52 weeks",   value: d.w2 },
+  { date: d.date, band: "52–78 weeks",   value: d.w3 },
+  { date: d.date, band: "Over 78 weeks", value: d.w4 }
+])
 ```
 
 # Waiting Profile
@@ -85,15 +96,6 @@ Plot.plot({
 
 ```{ojs}
 //| title: Breakdown of Patient Waiting Times
-bandOrder = ["0–26 weeks", "26–52 weeks", "52–78 weeks", "Over 78 weeks"]
-
-bands = filtered.flatMap(d => [
-  { date: d.date, band: "0–26 weeks",    value: d.w1 },
-  { date: d.date, band: "26–52 weeks",   value: d.w2 },
-  { date: d.date, band: "52–78 weeks",   value: d.w3 },
-  { date: d.date, band: "Over 78 weeks", value: d.w4 }
-])
-
 Plot.plot({
   marginLeft: 70,
   x: { label: null },
