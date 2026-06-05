@@ -407,3 +407,82 @@ Plot.plot({
   ]
 })
 ```
+
+# Diagnostic Waits
+
+```{ojs}
+//| output: false
+diagData = FileAttachment("data/diagnostics.json").json()
+
+diagGroups = ["0 to 4 weeks", "4 to 8 weeks", "8 to 18 weeks", "4 to 12 months", "Over 1 year", "Other"]
+
+diagTypes = Array.from(new Set(diagData.map(d => d.type))).sort()
+
+// Descriptions available for the selected test type (cascading selector)
+diagDescs = Array.from(new Set(diagData.filter(d => d.type === diagType).map(d => d.desc))).sort()
+
+diagFiltered = diagData
+  .filter(d => d.hb === hb && d.type === diagType && d.desc === diagDesc)
+  .map(d => ({ ...d, date: new Date(d.date) }))
+
+// One row per month with each band's value, for stacking tooltips + totals
+diagByMonth = Array.from(d3.group(diagFiltered, d => +d.date), ([t, rows]) => {
+  const date = new Date(t)
+  const m = {}; diagGroups.forEach(g => m[g] = 0)
+  let total = 0; rows.forEach(r => { m[r.grp] = (m[r.grp] || 0) + r.n; total += r.n })
+  return { date, total, ...m }
+}).sort((a, b) => a.date - b.date)
+
+diagLatest = diagByMonth.length ? diagByMonth[diagByMonth.length - 1] : null
+```
+
+## Row {height="92px"}
+
+```{ojs}
+viewof diagType = Inputs.select(diagTypes, { label: "Diagnostic Test Type" })
+viewof diagDesc = Inputs.select(diagDescs, { label: "Diagnostic Test Description" })
+```
+
+## Row {height="160px"}
+
+```{ojs}
+html`<div class="stat-grid">
+  <div class="stat-card primary" style="max-width: 320px">
+    <div class="stat-label">Total Waiting</div>
+    <div class="stat-value">${diagLatest ? fmtNum(diagLatest.total) : "—"}</div>
+    <div class="stat-sub">${diagLatest ? fmtMonth(diagLatest.date) : ""}</div>
+  </div>
+</div>`
+```
+
+## Row
+
+### Column
+
+```{ojs}
+//| title: Diagnostic Waiting Patients Over Time
+Plot.plot({
+  height: 560,
+  marginLeft: 70,
+  x: { label: null },
+  y: { grid: true, label: "Number of Patients Waiting", tickFormat: "~s" },
+  color: {
+    legend: true,
+    domain: diagGroups,
+    range: ["#90CAF9", "#42A5F5", "#1976D2", "#0D47A1", "#1A237E", "#9E9E9E"]
+  },
+  marks: [
+    Plot.areaY(diagFiltered, { x: "date", y: "n", z: "grp", fill: "grp", order: diagGroups }),
+    Plot.ruleY([0]),
+    Plot.tip(diagByMonth, Plot.pointerX({
+      x: "date",
+      y: "total",
+      title: d => [
+        fmtMonth(d.date),
+        ...diagGroups.filter(g => d[g] > 0).map(g => `${g}: ${fmtNum(d[g])}`),
+        `Total: ${fmtNum(d.total)}`
+      ].join("\n")
+    }))
+  ]
+})
+```

@@ -237,4 +237,51 @@ target12 <- bind_rows(wt_by_specialty, wt_all) %>%
 
 write_data(target12, "target12")
 
+# ===========================================================================
+# Diagnostic Waits
+# ===========================================================================
+message("Building diagnostic waits data ...")
+
+raw_diag <- read_ckan_csv("10dfe6f3-32de-4039-84c2-7e7794a06b31") %>%
+  clean_names() %>%
+  rename(waiting_time_category = waiting_time, number_waiting = number_on_list) %>%
+  mutate(
+    date = ymd(as.character(month_ending)),
+    waiting_time_group = case_when(
+      waiting_time_category %in% c("0-7 days", "8-14 days", "15-21 days", "22-28 days") ~ "0 to 4 weeks",
+      waiting_time_category %in% c("29-35 days", "36-42 days", "43-49 days", "50-56 days") ~ "4 to 8 weeks",
+      waiting_time_category %in% c("57-63 days", "64-70 days", "71-77 days", "78-84 days", "85-91 days", "92-182 days") ~ "8 to 18 weeks",
+      waiting_time_category %in% c("183-273 days", "274-364 days") ~ "4 to 12 months",
+      waiting_time_category == "365 days and over" ~ "Over 1 year",
+      TRUE ~ "Other"
+    )
+  ) %>%
+  filter(date >= ymd("2020-10-01")) %>%
+  add_area_name("hbt")
+
+# Board-level totals (exclude any country row, then synthesise Scotland)
+diag_board <- raw_diag %>%
+  filter(hb_name != "Scotland") %>%
+  group_by(hb_name, diagnostic_test_type, diagnostic_test_description,
+           date, waiting_time_group) %>%
+  summarise(n = sum(number_waiting, na.rm = TRUE), .groups = "drop")
+
+diag_scot <- diag_board %>%
+  group_by(diagnostic_test_type, diagnostic_test_description, date, waiting_time_group) %>%
+  summarise(n = sum(n, na.rm = TRUE), .groups = "drop") %>%
+  mutate(hb_name = "Scotland")
+
+diagnostics <- bind_rows(diag_board, diag_scot) %>%
+  transmute(
+    hb = hb_name,
+    type = diagnostic_test_type,
+    desc = diagnostic_test_description,
+    date = format(date, "%Y-%m-%d"),
+    grp = waiting_time_group,
+    n = round(n)
+  ) %>%
+  arrange(hb, type, desc, date)
+
+write_data(diagnostics, "diagnostics")
+
 message("Done.")
