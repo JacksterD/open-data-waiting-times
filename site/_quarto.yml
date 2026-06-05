@@ -11,6 +11,7 @@ website:
 format:
   dashboard:
     theme: [cosmo, theme.scss]
+    scrolling: true
     nav-buttons:
       - icon: github
         href: https://github.com/JacksterD/open-data-waiting-times

@@ -123,3 +123,130 @@ Plot.plot({
   ]
 })
 ```
+
+# Balance
+
+```{ojs}
+//| output: false
+balanceData = FileAttachment("data/balance.json").json()
+
+balanceFiltered = balanceData
+  .filter(d => d.hb === hb && d.ptype === ptype && d.spec === spec)
+  .map(d => ({ ...d, date: new Date(d.date) }))
+  .sort((a, b) => a.date - b.date)
+
+balanceLatest = balanceFiltered.length ? balanceFiltered[balanceFiltered.length - 1] : null
+
+fmtQuarter = d => `${d.getFullYear()} Q${Math.floor(d.getMonth() / 3) + 1}`
+
+// Additions / removals in long form for a two-series line chart
+addRem = balanceFiltered.flatMap(d => [
+  { date: d.date, series: "Additions", value: d.add },
+  { date: d.date, series: "Removals", value: d.rem }
+])
+
+reasonOrder = ["Attended", "Referred", "Transferred", "No Treatment", "Other"]
+
+// Removal reasons as a share of total removals (sums to 100% each quarter)
+reasons = balanceFiltered.flatMap(d => {
+  const parts = { Attended: d.attended, Referred: d.referred, Transferred: d.transferred, "No Treatment": d.notreat, Other: d.other }
+  const sum = reasonOrder.reduce((a, r) => a + (parts[r] || 0), 0)
+  return reasonOrder.map(r => ({ date: d.date, reason: r, pct: sum ? (parts[r] || 0) / sum * 100 : 0 }))
+})
+```
+
+## Row {height="22%"}
+
+```{ojs}
+html`<div class="stat-grid">
+  <div class="stat-card primary">
+    <div class="stat-label">Additions</div>
+    <div class="stat-value">${balanceLatest ? fmtNum(balanceLatest.add) : "—"}</div>
+    <div class="stat-sub">${balanceLatest ? fmtQuarter(balanceLatest.date) : ""}</div>
+  </div>
+  <div class="stat-card primary">
+    <div class="stat-label">Removals</div>
+    <div class="stat-value">${balanceLatest ? fmtNum(balanceLatest.rem) : "—"}</div>
+    <div class="stat-sub">${balanceLatest ? fmtQuarter(balanceLatest.date) : ""}</div>
+  </div>
+  <div class="stat-card ${balanceLatest && balanceLatest.bal > 0 ? "danger" : "success"}">
+    <div class="stat-label">Net Change</div>
+    <div class="stat-value">${balanceLatest ? fmtNum(balanceLatest.bal) : "—"}</div>
+    <div class="stat-sub">${balanceLatest ? fmtQuarter(balanceLatest.date) : ""}</div>
+  </div>
+</div>`
+```
+
+## Row
+
+### Column
+
+```{ojs}
+//| title: Waiting List Additions and Removals
+Plot.plot({
+  marginLeft: 70,
+  x: { label: null },
+  y: { grid: true, label: "Number of Patients", tickFormat: "~s" },
+  color: { legend: true, domain: ["Additions", "Removals"], range: ["#FF7043", "#00897B"] },
+  marks: [
+    Plot.lineY(addRem, { x: "date", y: "value", stroke: "series", strokeWidth: 2 }),
+    Plot.ruleY([0]),
+    Plot.tip(balanceFiltered, Plot.pointerX({
+      x: "date",
+      y: d => Math.max(d.add, d.rem),
+      title: d => `${fmtQuarter(d.date)}\nAdditions: ${fmtNum(d.add)}\nRemovals: ${fmtNum(d.rem)}`
+    }))
+  ]
+})
+```
+
+## Row
+
+### Column
+
+```{ojs}
+//| title: Net Change in Waiting List Size
+Plot.plot({
+  marginLeft: 70,
+  x: { label: null },
+  y: { grid: true, label: "Net Change in Number of Patients", tickFormat: "~s" },
+  marks: [
+    Plot.rectY(balanceFiltered, {
+      x: "date", y: "bal", interval: "3 months",
+      fill: d => d.bal >= 0 ? "#DC2626" : "#059669"
+    }),
+    Plot.ruleY([0]),
+    Plot.tip(balanceFiltered, Plot.pointerX({
+      x: "date", y: "bal",
+      title: d => `${fmtQuarter(d.date)}\nNet change: ${fmtNum(d.bal)}`
+    }))
+  ]
+})
+```
+
+## Row
+
+### Column
+
+```{ojs}
+//| title: Reasons for Removal from Waiting List
+Plot.plot({
+  marginLeft: 70,
+  x: { label: null },
+  y: { grid: true, label: "Percentage of Removals", domain: [0, 100], tickFormat: d => d + "%" },
+  color: { legend: true, domain: reasonOrder, range: ["#0078D4", "#42A5F5", "#90CAF9", "#1976D2", "#0D47A1"] },
+  marks: [
+    Plot.areaY(reasons, { x: "date", y: "pct", fill: "reason", order: reasonOrder }),
+    Plot.ruleY([0]),
+    Plot.tip(balanceFiltered, Plot.pointerX({
+      x: "date",
+      y: () => 100,
+      title: d => {
+        const parts = { Attended: d.attended, Referred: d.referred, Transferred: d.transferred, "No Treatment": d.notreat, Other: d.other }
+        const sum = reasonOrder.reduce((a, r) => a + (parts[r] || 0), 0)
+        return [fmtQuarter(d.date), ...reasonOrder.map(r => `${r}: ${sum ? ((parts[r] || 0) / sum * 100).toFixed(1) : 0}%`)].join("\n")
+      }
+    }))
+  ]
+})
+```
