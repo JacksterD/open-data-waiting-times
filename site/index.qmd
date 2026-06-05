@@ -51,7 +51,7 @@ bands = filtered.flatMap(d => [
 
 # Waiting Profile
 
-## Row {height="22%"}
+## Row {height="140px"}
 
 ```{ojs}
 html`<div class="stat-grid">
@@ -157,7 +157,7 @@ reasons = balanceFiltered.flatMap(d => {
 })
 ```
 
-## Row {height="22%"}
+## Row {height="140px"}
 
 ```{ojs}
 html`<div class="stat-grid">
