@@ -27,7 +27,8 @@ jobs:
         uses: r-lib/actions/setup-r-dependencies@v2
         with:
           packages: >-
-            readr, dplyr, tidyr, stringr, lubridate, janitor, jsonlite
+            readr, dplyr, tidyr, stringr, lubridate, janitor, jsonlite,
+            phsmethods
 
       - name: Build data (fetch live CKAN data + pre-aggregate)
         run: Rscript pipeline/build-data.R

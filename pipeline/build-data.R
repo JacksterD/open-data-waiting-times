@@ -23,6 +23,7 @@ suppressPackageStartupMessages({
   library(lubridate)
   library(janitor)
   library(jsonlite)
+  library(phsmethods)
 })
 
 # Resolve output dir relative to this script's location so it works from
@@ -40,44 +41,21 @@ get_ckan_url <- function(resource_id) {
 }
 
 # --- Health board lookup ---------------------------------------------------
-# NOTE: the original Shiny app referenced an `area_lookup` object that was
-# never committed to the repo. We reconstruct it here from the well-known,
-# stable NHS Scotland health-board codes (HB2019 + legacy HB2014 codes that
-# still appear in historical rows). If you would rather pull the official
-# "Geography Codes and Labels" CKAN lookup, replace this block with a
-# get_ckan_url() + read_csv() call.
-area_lookup <- tribble(
-  ~geo_code,    ~area_name,
-  # Current (HB2019) codes
-  "S08000015",  "NHS Ayrshire and Arran",
-  "S08000016",  "NHS Borders",
-  "S08000017",  "NHS Dumfries and Galloway",
-  "S08000019",  "NHS Forth Valley",
-  "S08000020",  "NHS Grampian",
-  "S08000022",  "NHS Highland",
-  "S08000024",  "NHS Lothian",
-  "S08000025",  "NHS Orkney",
-  "S08000026",  "NHS Shetland",
-  "S08000028",  "NHS Western Isles",
-  "S08000029",  "NHS Fife",
-  "S08000030",  "NHS Tayside",
-  "S08000031",  "NHS Greater Glasgow and Clyde",
-  "S08000032",  "NHS Lanarkshire",
-  # Legacy (HB2014) codes that map to the same boards
-  "S08000018",  "NHS Fife",
-  "S08000021",  "NHS Greater Glasgow and Clyde",
-  "S08000023",  "NHS Lanarkshire",
-  "S08000027",  "NHS Tayside",
-  # National
-  "S92000003",  "Scotland"
-)
-
+# The original Shiny app's `area_lookup` mapped NHS geography codes to names.
+# phsmethods::match_area() does exactly that, so we use it directly (this is
+# the faithful, auto-maintained equivalent). match_area() returns NA for the
+# Scotland country code, so we special-case it, and fall back to the raw code
+# for anything unmatched rather than silently dropping rows.
 add_area_name <- function(df, code_col = "hbt") {
   df %>%
-    left_join(area_lookup, by = setNames("geo_code", code_col)) %>%
-    rename(hb_name = area_name) %>%
-    # keep unmatched codes visible rather than silently dropping them
-    mutate(hb_name = coalesce(hb_name, .data[[code_col]]))
+    mutate(
+      hb_name = if_else(
+        .data[[code_col]] == "S92000003",
+        "Scotland",
+        suppressWarnings(match_area(.data[[code_col]]))
+      ),
+      hb_name = coalesce(hb_name, .data[[code_col]])
+    )
 }
 
 write_data <- function(df, name) {
