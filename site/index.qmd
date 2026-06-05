@@ -255,3 +255,155 @@ Plot.plot({
   ]
 })
 ```
+
+# 12-Week Target
+
+```{ojs}
+//| output: false
+target12Data = FileAttachment("data/target12.json").json()
+
+t12Filtered = target12Data
+  .filter(d => d.hb === hb && d.ptype === ptype && d.spec === spec)
+  .map(d => ({ ...d, date: new Date(d.date) }))
+  .sort((a, b) => a.date - b.date)
+
+t12Latest = t12Filtered.length ? t12Filtered[t12Filtered.length - 1] : null
+t12Pct = t12Latest && t12Latest.seen ? t12Latest.within12 / t12Latest.seen * 100 : null
+t12Theme = t12Pct == null ? "primary" : t12Pct >= 95 ? "success" : t12Pct >= 80 ? "warning" : "danger"
+
+treatedSeries = ["Within 12 weeks", "Over 12 weeks"]
+
+treatedLong = t12Filtered.flatMap(d => [
+  { date: d.date, series: "Within 12 weeks", value: d.within12 },
+  { date: d.date, series: "Over 12 weeks", value: d.over12 }
+])
+
+pctLong = t12Filtered.flatMap(d => {
+  const tot = d.seen || 0
+  return [
+    { date: d.date, series: "Within 12 weeks", pct: tot ? d.within12 / tot * 100 : 0 },
+    { date: d.date, series: "Over 12 weeks", pct: tot ? d.over12 / tot * 100 : 0 }
+  ]
+})
+
+waitLong = t12Filtered.flatMap(d => [
+  { date: d.date, metric: "Median", value: d.median },
+  { date: d.date, metric: "90th percentile", value: d.p90 }
+])
+```
+
+## Row {height="160px"}
+
+```{ojs}
+html`<div class="stat-grid">
+  <div class="stat-card ${t12Theme}">
+    <div class="stat-label">Seen Within 12 Weeks</div>
+    <div class="stat-value">${t12Pct == null ? "—" : t12Pct.toFixed(1) + "%"}</div>
+    <div class="stat-sub">${t12Latest ? fmtQuarter(t12Latest.date) : ""}</div>
+  </div>
+  <div class="stat-card danger">
+    <div class="stat-label">Waiting Over 12 Weeks</div>
+    <div class="stat-value">${t12Latest ? fmtNum(t12Latest.over12) : "—"}</div>
+    <div class="stat-sub">${t12Latest ? fmtQuarter(t12Latest.date) : ""}</div>
+  </div>
+</div>`
+```
+
+## Row
+
+### Column
+
+```{ojs}
+//| title: Number of Patients Treated by Wait Time
+Plot.plot({
+  height: 420,
+  marginLeft: 70,
+  x: { label: null },
+  y: { grid: true, label: null, tickFormat: "~s" },
+  color: { legend: true, domain: treatedSeries, range: ["#059669", "#DC2626"] },
+  marks: [
+    Plot.lineY(treatedLong, { x: "date", y: "value", stroke: "series", strokeWidth: 2 }),
+    Plot.ruleY([0]),
+    Plot.tip(t12Filtered, Plot.pointerX({
+      x: "date",
+      y: d => Math.max(d.within12, d.over12),
+      title: d => `${fmtQuarter(d.date)}\nWithin 12 weeks: ${fmtNum(d.within12)}\nOver 12 weeks: ${fmtNum(d.over12)}`
+    }))
+  ]
+})
+```
+
+## Row
+
+### Column
+
+```{ojs}
+//| title: Cumulative Number of Patients Treated
+Plot.plot({
+  height: 420,
+  marginLeft: 70,
+  x: { label: null },
+  y: { grid: true, label: null, tickFormat: "~s" },
+  color: { legend: true, domain: treatedSeries, range: ["#059669", "#DC2626"] },
+  marks: [
+    Plot.areaY(treatedLong, { x: "date", y: "value", fill: "series", order: treatedSeries }),
+    Plot.ruleY([0]),
+    Plot.tip(t12Filtered, Plot.pointerX({
+      x: "date",
+      y: d => d.within12 + d.over12,
+      title: d => `${fmtQuarter(d.date)}\nWithin 12 weeks: ${fmtNum(d.within12)}\nOver 12 weeks: ${fmtNum(d.over12)}\nTotal: ${fmtNum(d.seen)}`
+    }))
+  ]
+})
+```
+
+## Row
+
+### Column
+
+```{ojs}
+//| title: Percentage of Patients Treated by Treatment Wait Time
+Plot.plot({
+  height: 420,
+  marginLeft: 70,
+  x: { label: null },
+  y: { grid: true, label: null, domain: [0, 100], tickFormat: d => d + "%" },
+  color: { legend: true, domain: treatedSeries, range: ["#059669", "#DC2626"] },
+  marks: [
+    Plot.areaY(pctLong, { x: "date", y: "pct", fill: "series", order: treatedSeries }),
+    Plot.ruleY([0]),
+    Plot.tip(t12Filtered, Plot.pointerX({
+      x: "date",
+      y: () => 100,
+      title: d => {
+        const tot = d.seen || 0
+        return `${fmtQuarter(d.date)}\nWithin 12 weeks: ${tot ? (d.within12 / tot * 100).toFixed(1) : 0}%\nOver 12 weeks: ${tot ? (d.over12 / tot * 100).toFixed(1) : 0}%`
+      }
+    }))
+  ]
+})
+```
+
+## Row
+
+### Column
+
+```{ojs}
+//| title: Breakdown of Wait Times
+Plot.plot({
+  height: 420,
+  marginLeft: 70,
+  x: { label: null },
+  y: { grid: true, label: "Days Waited", tickFormat: "~s" },
+  color: { legend: true, domain: ["Median", "90th percentile"], range: ["#0078D4", "#FF6B6B"] },
+  marks: [
+    Plot.lineY(waitLong, { x: "date", y: "value", stroke: "metric", strokeWidth: 2 }),
+    Plot.ruleY([0]),
+    Plot.tip(t12Filtered, Plot.pointerX({
+      x: "date",
+      y: d => Math.max(d.median || 0, d.p90 || 0),
+      title: d => `${fmtQuarter(d.date)}\nMedian: ${fmtNum(d.median)} days\n90th percentile: ${fmtNum(d.p90)} days`
+    }))
+  ]
+})
+```
