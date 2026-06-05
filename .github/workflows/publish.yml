@@ -8,11 +8,19 @@ on:
     - cron: "0 6 * * 1"
   workflow_dispatch: {}
 
+# Permissions required for the official GitHub Pages deployment.
 permissions:
-  contents: write   # needed to push the rendered site to the gh-pages branch
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow one concurrent deployment; don't cancel an in-progress one.
+concurrency:
+  group: pages
+  cancel-in-progress: false
 
 jobs:
-  build-deploy:
+  build:
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
@@ -36,10 +44,26 @@ jobs:
       - name: Set up Quarto
         uses: quarto-dev/quarto-actions/setup@v2
 
-      - name: Render & publish to GitHub Pages
-        uses: quarto-dev/quarto-actions/publish@v2
+      - name: Render site
+        run: quarto render site
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
         with:
-          target: gh-pages
-          path: site
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          enablement: true
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site/_site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
