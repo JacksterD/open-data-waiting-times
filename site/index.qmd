@@ -148,6 +148,32 @@ c62Long = c62Filtered.flatMap(d => [
 ])
 ```
 
+```{ojs}
+//| output: false
+// ---- A&E Waits data -------------------------------------------------------
+aeData   = FileAttachment("data/ae.json").json()
+aeBoards = uniqSorted(aeData.map(d => d.hb))
+aeLocs   = uniqSorted(aeData.filter(d => d.hb === aeHb).map(d => d.loc))
+
+fmtWeek = d => d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
+fmtPct  = p => p == null ? "—" : p.toFixed(1) + "%"
+
+aeFiltered = aeData
+  .filter(d => d.hb === aeHb && d.loc === aeLoc)
+  .map(d => ({ ...d, date: new Date(d.date) }))
+  .sort((a, b) => a.date - b.date)
+
+aeLatest = aeFiltered.length ? aeFiltered[aeFiltered.length - 1] : null
+
+aeBands = ["Within 4 hours", "4–8 hours", "8–12 hours", "Over 12 hours"]
+aeBreakdown = aeFiltered.flatMap(d => [
+  { date: d.date, band: "Within 4 hours", pct: d.p4 },
+  { date: d.date, band: "4–8 hours",      pct: d.p48 },
+  { date: d.date, band: "8–12 hours",     pct: d.p812 },
+  { date: d.date, band: "Over 12 hours",  pct: d.p12 }
+])
+```
+
 # Waiting Profile {orientation="rows"}
 
 ## {.sidebar}
@@ -582,6 +608,77 @@ Plot.plot({
       x: "date",
       y: () => 100,
       title: d => `${fmtQuarter(d.date)}\nWithin 62 days: ${d.pct == null ? "—" : d.pct.toFixed(1) + "%"}\nOver 62 days: ${d.pct == null ? "—" : (100 - d.pct).toFixed(1) + "%"}\nReferrals: ${fmtNum(d.referrals)}`
+    }))
+  ]
+})
+```
+
+# A&E Waits
+
+## {.sidebar}
+
+```{ojs}
+viewof aeHb = Inputs.select(aeBoards, { label: "Health Board", value: aeBoards[0] })
+viewof aeLoc = Inputs.select(aeLocs, { label: "Treatment Location" })
+```
+
+## Column
+
+### Row {height="160px"}
+
+```{ojs}
+html`<div class="stat-grid">
+  <div class="stat-card ${ragTheme(aeLatest ? aeLatest.p4 : null)}">
+    <div class="stat-label">Within 4 Hours</div>
+    <div class="stat-value">${aeLatest && aeLatest.p4 != null ? aeLatest.p4.toFixed(1) + "%" : "—"}</div>
+    <div class="stat-sub">${aeLatest ? fmtWeek(aeLatest.date) : ""}</div>
+  </div>
+  <div class="stat-card primary">
+    <div class="stat-label">Total Attendances</div>
+    <div class="stat-value">${aeLatest ? fmtNum(aeLatest.att) : "—"}</div>
+    <div class="stat-sub">${aeLatest ? fmtWeek(aeLatest.date) : ""}</div>
+  </div>
+</div>`
+```
+
+### Row
+
+```{ojs}
+//| title: Total A&E Attendances
+Plot.plot({
+  height: 420,
+  marginLeft: 70,
+  x: { label: null },
+  y: { grid: true, label: "Number of Attendances", tickFormat: "~s" },
+  marks: [
+    Plot.areaY(aeFiltered, { x: "date", y: "att", fill: "#0078D4", fillOpacity: 0.12 }),
+    Plot.lineY(aeFiltered, { x: "date", y: "att", stroke: "#0078D4", strokeWidth: 2 }),
+    Plot.ruleY([0]),
+    Plot.tip(aeFiltered, Plot.pointerX({
+      x: "date", y: "att",
+      title: d => `${fmtWeek(d.date)}\nAttendances: ${fmtNum(d.att)}\nWithin 4 hours: ${fmtPct(d.p4)}`
+    }))
+  ]
+})
+```
+
+### Row
+
+```{ojs}
+//| title: A&E Waiting Time Breakdown
+Plot.plot({
+  height: 420,
+  marginLeft: 70,
+  x: { label: null },
+  y: { grid: true, label: "Percentage of Attendances", domain: [0, 100], tickFormat: d => d + "%" },
+  color: { legend: true, domain: aeBands, range: ["#059669", "#F59E0B", "#F97316", "#DC2626"] },
+  marks: [
+    Plot.areaY(aeBreakdown, { x: "date", y: "pct", fill: "band", order: aeBands }),
+    Plot.ruleY([0]),
+    Plot.tip(aeFiltered, Plot.pointerX({
+      x: "date",
+      y: () => 100,
+      title: d => `${fmtWeek(d.date)}\nWithin 4 hours: ${fmtPct(d.p4)}\n4–8 hours: ${fmtPct(d.p48)}\n8–12 hours: ${fmtPct(d.p812)}\nOver 12 hours: ${fmtPct(d.p12)}`
     }))
   ]
 })
