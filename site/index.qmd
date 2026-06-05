@@ -122,6 +122,32 @@ diagByMonth = Array.from(d3.group(diagFiltered, d => +d.date), ([t, rows]) => {
 diagLatest = diagByMonth.length ? diagByMonth[diagByMonth.length - 1] : null
 ```
 
+```{ojs}
+//| output: false
+// ---- Cancer Waiting Times data --------------------------------------------
+c31Data = FileAttachment("data/cancer31.json").json()
+c62Data = FileAttachment("data/cancer62.json").json()
+cancerBoards = uniqSorted([...c31Data.map(d => d.hb), ...c62Data.map(d => d.hb)])
+
+ragTheme = pct => pct == null ? "primary" : pct >= 95 ? "success" : pct >= 80 ? "warning" : "danger"
+
+c31Filtered = c31Data.filter(d => d.hb === cancerHb).map(d => ({ ...d, date: new Date(d.date) })).sort((a, b) => a.date - b.date)
+c62Filtered = c62Data.filter(d => d.hb === cancerHb).map(d => ({ ...d, date: new Date(d.date) })).sort((a, b) => a.date - b.date)
+
+c31Latest = c31Filtered.length ? c31Filtered[c31Filtered.length - 1] : null
+c62Latest = c62Filtered.length ? c62Filtered[c62Filtered.length - 1] : null
+
+cancerStandards = ["Within standard", "Over standard"]
+c31Long = c31Filtered.flatMap(d => [
+  { date: d.date, series: "Within standard", pct: d.pct },
+  { date: d.date, series: "Over standard", pct: d.pct == null ? null : 100 - d.pct }
+])
+c62Long = c62Filtered.flatMap(d => [
+  { date: d.date, series: "Within standard", pct: d.pct },
+  { date: d.date, series: "Over standard", pct: d.pct == null ? null : 100 - d.pct }
+])
+```
+
 # Waiting Profile {orientation="rows"}
 
 ## {.sidebar}
@@ -485,6 +511,77 @@ Plot.plot({
         ...diagGroups.filter(g => d[g] > 0).map(g => `${g}: ${fmtNum(d[g])}`),
         `Total: ${fmtNum(d.total)}`
       ].join("\n")
+    }))
+  ]
+})
+```
+
+# Cancer Waiting Times
+
+## {.sidebar}
+
+```{ojs}
+viewof cancerHb = Inputs.select(cancerBoards, { label: "Health Board", value: boardDefault(cancerBoards) })
+```
+
+## Column
+
+### Row {height="160px"}
+
+```{ojs}
+html`<div class="stat-grid">
+  <div class="stat-card ${ragTheme(c31Latest ? c31Latest.pct : null)}">
+    <div class="stat-label">31-Day Standard</div>
+    <div class="stat-value">${c31Latest && c31Latest.pct != null ? c31Latest.pct.toFixed(1) + "%" : "—"}</div>
+    <div class="stat-sub">${c31Latest ? fmtQuarter(c31Latest.date) : ""}</div>
+  </div>
+  <div class="stat-card ${ragTheme(c62Latest ? c62Latest.pct : null)}">
+    <div class="stat-label">62-Day Standard</div>
+    <div class="stat-value">${c62Latest && c62Latest.pct != null ? c62Latest.pct.toFixed(1) + "%" : "—"}</div>
+    <div class="stat-sub">${c62Latest ? fmtQuarter(c62Latest.date) : ""}</div>
+  </div>
+</div>`
+```
+
+### Row
+
+```{ojs}
+//| title: "31-Day Standard — decision to treat to first cancer treatment"
+Plot.plot({
+  height: 420,
+  marginLeft: 70,
+  x: { label: null },
+  y: { grid: true, label: "Percentage of Referrals", domain: [0, 100], tickFormat: d => d + "%" },
+  color: { legend: true, domain: cancerStandards, range: ["#059669", "#DC2626"] },
+  marks: [
+    Plot.areaY(c31Long, { x: "date", y: "pct", fill: "series", order: cancerStandards }),
+    Plot.ruleY([0]),
+    Plot.tip(c31Filtered, Plot.pointerX({
+      x: "date",
+      y: () => 100,
+      title: d => `${fmtQuarter(d.date)}\nWithin 31 days: ${d.pct == null ? "—" : d.pct.toFixed(1) + "%"}\nOver 31 days: ${d.pct == null ? "—" : (100 - d.pct).toFixed(1) + "%"}\nReferrals: ${fmtNum(d.referrals)}`
+    }))
+  ]
+})
+```
+
+### Row
+
+```{ojs}
+//| title: "62-Day Standard — urgent referral to first cancer treatment"
+Plot.plot({
+  height: 420,
+  marginLeft: 70,
+  x: { label: null },
+  y: { grid: true, label: "Percentage of Referrals", domain: [0, 100], tickFormat: d => d + "%" },
+  color: { legend: true, domain: cancerStandards, range: ["#059669", "#DC2626"] },
+  marks: [
+    Plot.areaY(c62Long, { x: "date", y: "pct", fill: "series", order: cancerStandards }),
+    Plot.ruleY([0]),
+    Plot.tip(c62Filtered, Plot.pointerX({
+      x: "date",
+      y: () => 100,
+      title: d => `${fmtQuarter(d.date)}\nWithin 62 days: ${d.pct == null ? "—" : d.pct.toFixed(1) + "%"}\nOver 62 days: ${d.pct == null ? "—" : (100 - d.pct).toFixed(1) + "%"}\nReferrals: ${fmtNum(d.referrals)}`
     }))
   ]
 })

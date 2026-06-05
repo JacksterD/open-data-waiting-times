@@ -284,4 +284,66 @@ diagnostics <- bind_rows(diag_board, diag_scot) %>%
 
 write_data(diagnostics, "diagnostics")
 
+# ===========================================================================
+# Cancer Waiting Times (31-day and 62-day standards)
+# ===========================================================================
+message("Building cancer waits data ...")
+
+quarter_to_date <- function(q) {
+  ymd(paste0(
+    str_sub(q, 1, 4),
+    case_when(
+      str_sub(q, -2) == "Q1" ~ "-03-31",
+      str_sub(q, -2) == "Q2" ~ "-06-30",
+      str_sub(q, -2) == "Q3" ~ "-09-30",
+      str_sub(q, -2) == "Q4" ~ "-12-31"
+    )
+  ))
+}
+
+# Aggregate a cancer dataset to (board, quarter) % treated within standard.
+# `code_col` is the geography column; `ref_col`/`within_col` the count columns.
+build_cancer <- function(resource_id, code_col, ref_col, within_col) {
+  raw <- read_ckan_csv(resource_id) %>%
+    clean_names() %>%
+    add_area_name(code_col) %>%
+    filter(!is.na(hb_name), hb_name != "Scotland")
+
+  board <- raw %>%
+    group_by(hb_name, quarter) %>%
+    summarise(
+      referrals = sum(.data[[ref_col]], na.rm = TRUE),
+      within    = sum(.data[[within_col]], na.rm = TRUE),
+      .groups = "drop"
+    )
+
+  scotland <- board %>%
+    group_by(quarter) %>%
+    summarise(referrals = sum(referrals), within = sum(within), .groups = "drop") %>%
+    mutate(hb_name = "Scotland")
+
+  bind_rows(board, scotland) %>%
+    transmute(
+      hb = hb_name,
+      date = format(quarter_to_date(quarter), "%Y-%m-%d"),
+      pct = ifelse(referrals > 0, round(within / referrals * 100, 1), NA),
+      referrals = round(referrals)
+    ) %>%
+    arrange(hb, date)
+}
+
+cancer31 <- build_cancer(
+  "58527343-a930-4058-bf9e-3c6e5cb04010", "hbt",
+  "number_of_eligible_referrals31day_standard",
+  "number_of_eligible_referrals_treated_within31days"
+)
+write_data(cancer31, "cancer31")
+
+cancer62 <- build_cancer(
+  "23b3bbf7-7a37-4f86-974b-6360d6748e08", "hb",
+  "number_of_eligible_referrals62day_standard",
+  "number_of_eligible_referrals_treated_within62days"
+)
+write_data(cancer62, "cancer62")
+
 message("Done.")
