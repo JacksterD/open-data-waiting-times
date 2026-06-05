@@ -186,6 +186,12 @@ viewof wpSpec = Inputs.select(wpSpecs, { label: "Specialty", value: "All" })
 
 ## Column
 
+### Row {.info-row}
+
+::: {.info-box}
+**Treatment Time Guarantee:** eligible inpatient/day-case patients have a legal right to start treatment within **12 weeks (84 days)** of it being agreed, alongside an **18-week** referral-to-treatment standard (90% of patients). This view shows the ongoing list by how long people have already waited.
+:::
+
 ### Row {height="160px"}
 
 ```{ojs}
@@ -266,6 +272,12 @@ viewof balSpec = Inputs.select(balSpecs, { label: "Specialty", value: "All" })
 ```
 
 ## Column
+
+### Row {.info-row}
+
+::: {.info-box}
+There is no formal Scottish Government target for this view. **Additions** are patients joining the waiting list and **removals** are those leaving it (treated, or removed for other reasons). When additions exceed removals the list grows and waits tend to lengthen.
+:::
 
 ### Row {height="160px"}
 
@@ -374,6 +386,12 @@ viewof t12Spec = Inputs.select(t12Specs, { label: "Specialty", value: "All" })
 ```
 
 ## Column
+
+### Row {.info-row}
+
+::: {.info-box}
+Measures the share of treated patients seen within 12 weeks. Scotland's **Treatment Time Guarantee** gives a legal right to inpatient/day-case treatment within **12 weeks**, and the standard for a first outpatient appointment is **12 weeks for 95%** of patients.
+:::
 
 ### Row {height="160px"}
 
@@ -499,6 +517,12 @@ viewof diagDesc = Inputs.select(diagDescs, { label: "Diagnostic Test Description
 
 ## Column
 
+### Row {.info-row}
+
+::: {.info-box}
+Scotland's standard is that no patient should wait longer than **6 weeks (42 days)** for one of the 8 key diagnostic tests (4 endoscopy and 4 radiology). Waits beyond the 8-week band are well past this standard.
+:::
+
 ### Row {height="160px"}
 
 ```{ojs}
@@ -551,6 +575,12 @@ viewof cancerHb = Inputs.select(cancerBoards, { label: "Health Board", value: bo
 ```
 
 ## Column
+
+### Row {.info-row}
+
+::: {.info-box}
+Two national standards, each **95%**: the **31-day standard** (decision to treat to first cancer treatment) and the **62-day standard** (urgent suspicion-of-cancer referral to first cancer treatment).
+:::
 
 ### Row {height="160px"}
 
@@ -623,6 +653,12 @@ viewof aeLoc = Inputs.select(aeLocs, { label: "Treatment Location" })
 ```
 
 ## Column
+
+### Row {.info-row}
+
+::: {.info-box}
+Scotland's **4-hour standard** is for **95%** of A&E attendances to be admitted, discharged or transferred within four hours of arrival, with a longer-term aim of 98%.
+:::
 
 ### Row {height="160px"}
 
