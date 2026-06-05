@@ -75,7 +75,7 @@ html`<div class="stat-grid">
 ```{ojs}
 //| title: Total Number of Patients on Waiting List
 Plot.plot({
-  height: 360,
+  height: 420,
   marginLeft: 70,
   x: { label: null },
   y: { grid: true, label: "Number of patients", tickFormat: "~s" },
@@ -98,7 +98,7 @@ Plot.plot({
 ```{ojs}
 //| title: Breakdown of Patient Waiting Times
 Plot.plot({
-  height: 360,
+  height: 420,
   marginLeft: 70,
   x: { label: null },
   y: { grid: true, label: "Patients waiting", tickFormat: "~s" },
@@ -186,7 +186,7 @@ html`<div class="stat-grid">
 ```{ojs}
 //| title: Waiting List Additions and Removals
 Plot.plot({
-  height: 360,
+  height: 500,
   marginLeft: 70,
   x: { label: null },
   y: { grid: true, label: "Number of Patients", tickFormat: "~s" },
@@ -210,7 +210,7 @@ Plot.plot({
 ```{ojs}
 //| title: Net Change in Waiting List Size
 Plot.plot({
-  height: 360,
+  height: 500,
   marginLeft: 70,
   x: { label: null },
   y: { grid: true, label: "Net Change in Number of Patients", tickFormat: "~s" },
@@ -235,7 +235,7 @@ Plot.plot({
 ```{ojs}
 //| title: Reasons for Removal from Waiting List
 Plot.plot({
-  height: 360,
+  height: 500,
   marginLeft: 70,
   x: { label: null },
   y: { grid: true, label: "Percentage of Removals", domain: [0, 100], tickFormat: d => d + "%" },
