@@ -41,15 +41,30 @@ svg[class*=" plot-"],
   font-family: "Inter", system-ui, sans-serif !important;
 }
 
-// --- Navbar ----------------------------------------------------------------
+// --- Navbar (solid NHS-navy header, white text) ----------------------------
 .navbar {
-  background: #ffffff !important;
-  border-bottom: 1px solid #e7edf3;
-  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.03);
+  background: #003087 !important;
+  border-bottom: none;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
 }
-.navbar .navbar-brand { color: var(--nhs-navy) !important; font-weight: 700; }
-.navbar .nav-link { color: #44525f !important; font-weight: 500; }
-.navbar .nav-link.active { color: $primary !important; }
+.navbar,
+.navbar a,
+.navbar .navbar-brand,
+.navbar .navbar-title,
+.navbar .navbar-title-text,
+.navbar .nav-link {
+  color: #ffffff !important;
+}
+.navbar .navbar-brand,
+.navbar .navbar-title-text { font-weight: 700; }
+.navbar .nav-link { opacity: 0.82; font-weight: 500; }
+.navbar .nav-link:hover { opacity: 1; }
+.navbar .nav-link.active {
+  opacity: 1;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.16) !important;
+  border-radius: 0.35rem;
+}
 
 // --- Sidebar ---------------------------------------------------------------
 .bslib-sidebar-layout > .sidebar {
